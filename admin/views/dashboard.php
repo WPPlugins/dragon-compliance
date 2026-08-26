@@ -20,6 +20,22 @@ $dragoncompliance_feed   = $dragoncompliance_view['feed'];
 			<?php esc_html_e( 'Vulnerability monitoring is not active yet: add your free Wordfence Intelligence API token under Settings.', 'dragon-compliance' ); ?>
 		</p>
 	</div>
+<?php elseif ( $dragoncompliance_feed['no_data'] ) : ?>
+	<div class="notice notice-warning">
+		<p>
+			<?php esc_html_e( 'Vulnerability monitoring is configured but no vulnerability data has been downloaded yet, so nothing has been checked. The feed is fetched by the daily scan — or press "Scan now".', 'dragon-compliance' ); ?>
+			<?php if ( $dragoncompliance_feed['error'] ) : ?>
+				<br />
+				<?php
+				printf(
+					/* translators: %s: error message. */
+					esc_html__( 'Last attempt failed: %s', 'dragon-compliance' ),
+					esc_html( $dragoncompliance_feed['error']['message'] )
+				);
+				?>
+			<?php endif; ?>
+		</p>
+	</div>
 <?php elseif ( $dragoncompliance_feed['stale'] ) : ?>
 	<div class="notice notice-warning">
 		<p>
@@ -29,6 +45,14 @@ $dragoncompliance_feed   = $dragoncompliance_view['feed'];
 				esc_html__( 'Vulnerability data is stale — last refreshed %s ago.', 'dragon-compliance' ),
 				esc_html( human_time_diff( time() - (int) $dragoncompliance_feed['age'] ) )
 			);
+			if ( $dragoncompliance_feed['error'] ) {
+				echo '<br />';
+				printf(
+					/* translators: %s: error message. */
+					esc_html__( 'Last attempt failed: %s', 'dragon-compliance' ),
+					esc_html( $dragoncompliance_feed['error']['message'] )
+				);
+			}
 			?>
 		</p>
 	</div>

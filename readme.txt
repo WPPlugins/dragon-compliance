@@ -4,7 +4,7 @@ Tags: compliance, sbom, security, vulnerability, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -65,6 +65,18 @@ plugin's other features work normally and monitoring stays off.
 Wordfence terms of service: https://www.wordfence.com/terms-of-use/
 Wordfence privacy policy: https://www.wordfence.com/privacy-policy/
 
+If the separate Dragon Compliance Pro add-on is installed and licensed, the
+same vulnerability list is downloaded from Dragon Core (api.dragoncore.ltd)
+instead, so no Wordfence account is needed. That request carries only your
+Dragon Core licence key and site hostname (for licence validation) — again,
+nothing about your inventory or users. Dragon Core serves an unmodified copy of
+the Wordfence Intelligence feed, including its copyright notices. This
+plugin only ever downloads the feed from www.wordfence.com or
+api.dragoncore.ltd; no other host is accepted.
+
+Dragon Core terms: https://dragoncore.ltd/terms
+Dragon Core privacy policy: https://dragoncore.ltd/privacy
+
 == Installation ==
 
 1. Upload the plugin files to `/wp-content/plugins/dragon-compliance`, or
@@ -120,6 +132,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.6 =
+Adds the feed-source hook Dragon Compliance Pro 1.0.4 uses for zero-configuration vulnerability monitoring. No change for free users.
+
 = 1.0.5 =
 Security: your Wordfence token is now stored with authenticated encryption, and monitoring re-scans as soon as you add, update or remove a plugin or theme. Recommended update.
 
@@ -127,6 +142,12 @@ Security: your Wordfence token is now stored with authenticated encryption, and 
 Listing and documentation improvements only. Safe to update.
 
 == Changelog ==
+
+= 1.0.6 =
+* New: the vulnerability feed source can now be supplied by Dragon Compliance Pro, which downloads it from Dragon Core so licensed sites need no Wordfence account. The free plugin only accepts www.wordfence.com or api.dragoncore.ltd as a source — any other host is ignored.
+* Improvement: the dashboard and Findings screens now say when monitoring is configured but no vulnerability data has been downloaded yet, and show why the last download failed, instead of looking healthy with nothing checked.
+* Hardening: the feed request no longer follows redirects; the Wordfence token is attached to the request after the source is validated and is never exposed to other plugins; an oversized feed record aborts the refresh (keeping the last good data) rather than being read into memory; an empty local index is never revalidated with a conditional request.
+* Free users: no change; your Wordfence token keeps working exactly as before.
 
 = 1.0.5 =
 * Security: the stored Wordfence Intelligence API token now uses authenticated encryption (tamper-detecting), so a modified ciphertext is rejected rather than decrypted.

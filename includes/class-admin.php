@@ -230,6 +230,9 @@ class Admin {
 			'age'       => $age,
 			'stale'     => null !== $age && $age > 2 * DAY_IN_SECONDS,
 			'has_token' => $this->feed->has_token(),
+			// Configured but never successfully fetched: monitoring has no data yet.
+			'no_data'   => null === $age,
+			'error'     => $this->feed->last_error(),
 		);
 	}
 
@@ -318,7 +321,8 @@ class Admin {
 	private function render_settings(): void {
 		$dragoncompliance_view = array(
 			'alert_enabled' => (bool) get_option( 'dragoncompliance_alert_enabled', 1 ),
-			'has_token'     => $this->feed->has_token(),
+			'has_token'     => $this->feed->token_set(),
+			'proxied'       => $this->feed->is_proxied(),
 		);
 		require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/settings.php';
 	}

@@ -13,6 +13,21 @@ defined( 'ABSPATH' ) || exit;
 	<div class="notice notice-warning inline">
 		<p><?php esc_html_e( 'Add your free Wordfence Intelligence API token under Settings to activate vulnerability monitoring.', 'dragon-compliance' ); ?></p>
 	</div>
+<?php elseif ( $dragoncompliance_view['feed']['no_data'] ) : ?>
+	<div class="notice notice-warning inline">
+		<p>
+			<?php esc_html_e( 'No vulnerability data has been downloaded yet, so these results are not complete. Run a scan to fetch the feed.', 'dragon-compliance' ); ?>
+			<?php if ( $dragoncompliance_view['feed']['error'] ) : ?>
+				<?php
+				printf(
+					/* translators: %s: error message. */
+					esc_html__( 'Last attempt failed: %s', 'dragon-compliance' ),
+					esc_html( $dragoncompliance_view['feed']['error']['message'] )
+				);
+				?>
+			<?php endif; ?>
+		</p>
+	</div>
 <?php endif; ?>
 
 <?php if ( array() === $dragoncompliance_view['findings'] ) : ?>
