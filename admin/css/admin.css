@@ -1,0 +1,82 @@
+.dragoncompliance-cards {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-top: 16px;
+}
+
+.dragoncompliance-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 12px 16px;
+	min-width: 240px;
+	flex: 1;
+}
+
+.dragoncompliance-big {
+	font-size: 32px;
+	font-weight: 600;
+	margin: 4px 0;
+}
+
+.dragoncompliance-badge {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	font-size: 11px;
+	line-height: 18px;
+	color: #fff;
+	background: #787c82;
+	margin-right: 4px;
+	text-transform: capitalize;
+}
+
+.dragoncompliance-badge-critical {
+	background: #d63638;
+}
+
+.dragoncompliance-badge-high {
+	background: #d97706;
+}
+
+.dragoncompliance-badge-medium {
+	background: #dba617;
+}
+
+.dragoncompliance-badge-low {
+	background: #2271b1;
+}
+
+.dragoncompliance-state {
+	font-weight: 700;
+}
+
+.dragoncompliance-state-pass {
+	color: #00a32a;
+}
+
+.dragoncompliance-state-fail {
+	color: #d63638;
+}
+
+.dragoncompliance-state-cell {
+	width: 40px;
+	text-align: center;
+}
+
+.dragoncompliance-payload {
+	display: inline-block;
+	max-width: 480px;
+	overflow-wrap: anywhere;
+}
+
+.dragoncompliance-env {
+	max-width: 640px;
+}
+
+.dragoncompliance-pagination a,
+.dragoncompliance-page-current {
+	display: inline-block;
+	padding: 2px 8px;
+}

@@ -1,0 +1,98 @@
+<?php
+/**
+ * Dashboard tab.
+ *
+ * @package DragonCompliance
+ * @var array $dragoncompliance_view
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+$dragoncompliance_score  = $dragoncompliance_view['score'];
+$dragoncompliance_sev    = $dragoncompliance_view['by_severity'];
+$dragoncompliance_counts = $dragoncompliance_view['counts'];
+$dragoncompliance_feed   = $dragoncompliance_view['feed'];
+?>
+
+<?php if ( ! $dragoncompliance_feed['has_token'] ) : ?>
+	<div class="notice notice-warning">
+		<p>
+			<?php esc_html_e( 'Vulnerability monitoring is not active yet: add your free Wordfence Intelligence API token under Settings.', 'dragon-compliance' ); ?>
+		</p>
+	</div>
+<?php elseif ( $dragoncompliance_feed['stale'] ) : ?>
+	<div class="notice notice-warning">
+		<p>
+			<?php
+			printf(
+				/* translators: %s: human-readable age. */
+				esc_html__( 'Vulnerability data is stale — last refreshed %s ago.', 'dragon-compliance' ),
+				esc_html( human_time_diff( time() - (int) $dragoncompliance_feed['age'] ) )
+			);
+			?>
+		</p>
+	</div>
+<?php endif; ?>
+
+<div class="dragoncompliance-cards">
+	<div class="dragoncompliance-card">
+		<h2><?php esc_html_e( 'Readiness score', 'dragon-compliance' ); ?></h2>
+		<p class="dragoncompliance-big"><?php echo esc_html( $dragoncompliance_score['percent'] . '%' ); ?></p>
+		<p>
+			<?php
+			printf(
+				/* translators: 1: passed count, 2: total count. */
+				esc_html__( '%1$d of %2$d checks satisfied', 'dragon-compliance' ),
+				(int) $dragoncompliance_score['passed'],
+				(int) $dragoncompliance_score['total']
+			);
+			?>
+		</p>
+	</div>
+	<div class="dragoncompliance-card">
+		<h2><?php esc_html_e( 'Open findings', 'dragon-compliance' ); ?></h2>
+		<p class="dragoncompliance-big"><?php echo esc_html( (string) $dragoncompliance_counts['open'] ); ?></p>
+		<p>
+			<?php foreach ( array( 'critical', 'high', 'medium', 'low', 'unknown' ) as $dragoncompliance_level ) : ?>
+				<?php if ( ! empty( $dragoncompliance_sev[ $dragoncompliance_level ] ) ) : ?>
+					<span class="dragoncompliance-badge dragoncompliance-badge-<?php echo esc_attr( $dragoncompliance_level ); ?>">
+						<?php echo esc_html( $dragoncompliance_level . ': ' . $dragoncompliance_sev[ $dragoncompliance_level ] ); ?>
+					</span>
+				<?php endif; ?>
+			<?php endforeach; ?>
+		</p>
+	</div>
+	<div class="dragoncompliance-card">
+		<h2><?php esc_html_e( 'Monitoring', 'dragon-compliance' ); ?></h2>
+		<p>
+			<?php if ( $dragoncompliance_view['last_scan'] > 0 ) : ?>
+				<?php
+				printf(
+					/* translators: %s: human-readable age. */
+					esc_html__( 'Last scan: %s ago.', 'dragon-compliance' ),
+					esc_html( human_time_diff( $dragoncompliance_view['last_scan'] ) )
+				);
+				?>
+			<?php else : ?>
+				<?php esc_html_e( 'No scan has run yet.', 'dragon-compliance' ); ?>
+			<?php endif; ?>
+		</p>
+		<p>
+			<?php if ( null !== $dragoncompliance_feed['age'] ) : ?>
+				<?php
+				printf(
+					/* translators: %s: human-readable age. */
+					esc_html__( 'Vulnerability data age: %s.', 'dragon-compliance' ),
+					esc_html( human_time_diff( time() - (int) $dragoncompliance_feed['age'] ) )
+				);
+				?>
+			<?php endif; ?>
+		</p>
+		<p>
+			<button type="button" class="button button-primary" id="dragoncompliance-scan-now">
+				<?php esc_html_e( 'Scan now', 'dragon-compliance' ); ?>
+			</button>
+			<span id="dragoncompliance-scan-result" role="status"></span>
+		</p>
+	</div>
+</div>
