@@ -344,6 +344,11 @@ class Admin {
 			gmdate( 'c' )
 		);
 
+		/**
+		 * Fires when an SBOM download has been generated for an administrator.
+		 */
+		do_action( 'dragoncompliance_sbom_exported' );
+
 		nocache_headers();
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="sbom-' . gmdate( 'Y-m-d' ) . '.cdx.json"' );

@@ -57,6 +57,7 @@ final class Plugin {
 	private function init_hooks(): void {
 		$cron = new Cron( array( self::class, 'make_scanner' ) );
 		$cron->init();
+		( new Review_Prompt() )->init_hooks();
 
 		if ( is_admin() ) {
 			$admin = new Admin( new Findings_Store(), new Evidence(), new Feed() );

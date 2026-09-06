@@ -1,38 +1,39 @@
-=== Dragon Compliance ===
+=== Dragon Compliance - CRA & NIS2 Compliance, SBOM Export & Vulnerability Scanner ===
 Contributors: dragoncoreltd
-Tags: compliance, sbom, security, vulnerability, nis2
+Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-CRA & NIS2 compliance for WordPress: software inventory, SBOM export, vulnerability monitoring, readiness checklist and a timestamped evidence log.
+CRA and NIS2 compliance for WordPress: software inventory, SBOM export, vulnerability scanning, readiness checklist and a timestamped evidence log.
 
 == Description ==
 
 The EU Cyber Resilience Act (CRA) and NIS2 directive expect businesses to know
 what software they run, monitor it for known vulnerabilities, patch without
-delay — and to be able to *prove* all of that. Dragon Compliance turns your
-WordPress site into something you can hand to an auditor:
+delay - and to be able to *prove* all of that. Dragon Compliance is the
+WordPress compliance plugin that turns your site into something you can hand
+to an auditor:
 
-* **Software inventory** — WordPress core, every plugin and theme with version,
+* **Software inventory** - WordPress core, every plugin and theme with version,
   author and license, plus the PHP/database/server environment.
-* **SBOM export** — download a standards-compliant CycloneDX 1.6 JSON Software
+* **SBOM export** - download a standards-compliant CycloneDX 1.6 JSON Software
   Bill of Materials, the artifact auditors and enterprise customers ask for.
-* **Vulnerability monitoring** — a daily scan matches your inventory against
+* **Vulnerability monitoring** - a daily scan matches your inventory against
   the Wordfence Intelligence vulnerability database and lists affected
   components by severity. New critical findings can email the site admin.
-* **CRA readiness checklist** — automatic checks (HTTPS, auto-updates coverage,
+* **CRA readiness checklist** - automatic checks (HTTPS, auto-updates coverage,
   debug mode, file editing, 2FA, default admin account, open criticals) plus
   manual attestations for process facts like your update policy and backups,
   with a completion score.
-* **Evidence log** — every scan, detection, resolution and attestation change
+* **Evidence log** - every scan, detection, resolution and attestation change
   is recorded with a timestamp, building the audit trail regulators expect.
 
 Everything is processed **locally on your server**. Your inventory is never
-uploaded anywhere — the only outbound request is downloading the public
+uploaded anywhere - the only outbound request is downloading the public
 vulnerability database.
 
 Everything above is free, fully functional and unlimited.
@@ -58,7 +59,7 @@ vulnerabilities. This is required for the vulnerability-monitoring feature
 and happens once daily, and when you press "Scan now".
 
 Only a standard HTTP request with your Wordfence Intelligence API token is
-sent — no data about your site, its inventory or its users is transmitted.
+sent - no data about your site, its inventory or its users is transmitted.
 You need a free wordfence.com account to generate a token; without one, the
 plugin's other features work normally and monitoring stays off.
 
@@ -68,7 +69,7 @@ Wordfence privacy policy: https://www.wordfence.com/privacy-policy/
 If the separate Dragon Compliance Pro add-on is installed and licensed, the
 same vulnerability list is downloaded from Dragon Core (api.dragoncore.ltd)
 instead, so no Wordfence account is needed. That request carries only your
-Dragon Core licence key and site hostname (for licence validation) — again,
+Dragon Core licence key and site hostname (for licence validation) - again,
 nothing about your inventory or users. Dragon Core serves an unmodified copy of
 the Wordfence Intelligence feed, including its copyright notices. This
 plugin only ever downloads the feed from www.wordfence.com or
@@ -93,7 +94,7 @@ Dragon Core privacy policy: https://dragoncore.ltd/privacy
 
 If your WordPress site is part of a commercial digital product or service
 offered in the EU, parts of the CRA and NIS2 likely apply to your business.
-This plugin gives you the technical evidence base — it is not legal advice.
+This plugin gives you the technical evidence base - it is not legal advice.
 
 = Where does the vulnerability data come from? =
 
@@ -107,11 +108,11 @@ and automatic SBOM snapshots with diffs.
 
 = What is an SBOM, and why would I need one? =
 
-A Software Bill of Materials lists every software component you run, with versions and licenses — like an ingredients label for your site. Auditors, enterprise customers and EU regulation increasingly ask for one. This plugin exports yours in the standard CycloneDX format in one click.
+A Software Bill of Materials lists every software component you run, with versions and licenses - like an ingredients label for your site. Auditors, enterprise customers and EU regulation increasingly ask for one. This plugin exports yours in the standard CycloneDX format in one click.
 
 = When do the CRA obligations start? =
 
-The Cyber Resilience Act's vulnerability and incident reporting obligations begin in September 2026, with the remaining requirements following in 2027. If the CRA touches your business, the evidence trail is worth starting now — findings and attestations only prove a history if they have one.
+The Cyber Resilience Act's vulnerability and incident reporting obligations begin in September 2026, with the remaining requirements following in 2027. If the CRA touches your business, the evidence trail is worth starting now - findings and attestations only prove a history if they have one.
 
 = Will it slow down my site? =
 
@@ -132,6 +133,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.7 =
+Adds a one-time WordPress.org review prompt on the Compliance screen after your first scan or SBOM export. No other changes.
+
 = 1.0.6 =
 Adds the feed-source hook Dragon Compliance Pro 1.0.4 uses for zero-configuration vulnerability monitoring. No change for free users.
 
@@ -143,15 +147,20 @@ Listing and documentation improvements only. Safe to update.
 
 == Changelog ==
 
+= 1.0.7 =
+* Asks for a WordPress.org review once, only on the Compliance screen and only after a vulnerability scan has completed or an SBOM has been exported. "Maybe later" snoozes it for a month and "No thanks" is permanent.
+* New `dragoncompliance_sbom_exported` action fires when an SBOM download is generated.
+* Listing title, description and tags now say what the plugin does, so it is easier to find in the plugin directory.
+
 = 1.0.6 =
-* New: the vulnerability feed source can now be supplied by Dragon Compliance Pro, which downloads it from Dragon Core so licensed sites need no Wordfence account. The free plugin only accepts www.wordfence.com or api.dragoncore.ltd as a source — any other host is ignored.
+* New: the vulnerability feed source can now be supplied by Dragon Compliance Pro, which downloads it from Dragon Core so licensed sites need no Wordfence account. The free plugin only accepts www.wordfence.com or api.dragoncore.ltd as a source - any other host is ignored.
 * Improvement: the dashboard and Findings screens now say when monitoring is configured but no vulnerability data has been downloaded yet, and show why the last download failed, instead of looking healthy with nothing checked.
 * Hardening: the feed request no longer follows redirects; the Wordfence token is attached to the request after the source is validated and is never exposed to other plugins; an oversized feed record aborts the refresh (keeping the last good data) rather than being read into memory; an empty local index is never revalidated with a conditional request.
 * Free users: no change; your Wordfence token keeps working exactly as before.
 
 = 1.0.5 =
 * Security: the stored Wordfence Intelligence API token now uses authenticated encryption (tamper-detecting), so a modified ciphertext is rejected rather than decrypted.
-* New: vulnerability monitoring re-scans immediately when a plugin or theme is installed, updated or removed, instead of waiting for the next daily run — newly added software is checked straight away.
+* New: vulnerability monitoring re-scans immediately when a plugin or theme is installed, updated or removed, instead of waiting for the next daily run - newly added software is checked straight away.
 
 = 1.0.4 =
 * Expanded the plugin listing: clearer free vs Pro breakdown, fuller FAQ, and a live-preview blueprint.
