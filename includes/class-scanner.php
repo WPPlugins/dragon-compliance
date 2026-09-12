@@ -131,9 +131,14 @@ class Scanner {
 			}
 		}
 
+		// resolve() reports the ids it actually transitioned, which can be fewer
+		// than were put forward: a write that did not land, or a row ignored
+		// between the read and the write. Evidence and hooks follow the rows that
+		// really changed, and the next scan retries the rest.
+		$resolved_ids = array();
 		if ( array() !== $diff['resolved_ids'] ) {
-			$this->findings->resolve( $diff['resolved_ids'] );
-			foreach ( $diff['resolved_ids'] as $resolved_id ) {
+			$resolved_ids = $this->findings->resolve( $diff['resolved_ids'] );
+			foreach ( $resolved_ids as $resolved_id ) {
 				$this->evidence->record( 'vuln_resolved', array( 'finding_id' => (int) $resolved_id ) );
 				/**
 				 * Fires when a previously-open vulnerability no longer matches.
@@ -158,7 +163,7 @@ class Scanner {
 
 		$summary = array(
 			'new'        => count( $new_findings ),
-			'resolved'   => count( $diff['resolved_ids'] ),
+			'resolved'   => count( $resolved_ids ),
 			'open'       => count( $matched ),
 			'unassessed' => Matcher::unassessed( $components ),
 			'feed_age'   => $this->feed->age(),

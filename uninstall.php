@@ -25,14 +25,19 @@ $dragoncompliance_options = array(
 	'dragoncompliance_db_version',
 	'dragoncompliance_alert_enabled',
 	'dragoncompliance_attestations',
+	'dragoncompliance_attestation_evidence_pending',
 	'dragoncompliance_api_token',
 	'dragoncompliance_feed_index',
 	'dragoncompliance_feed_meta',
 	'dragoncompliance_last_scan',
 	'dragoncompliance_review_prompt',
+	'dragoncompliance_schema_failure',
 );
 foreach ( $dragoncompliance_options as $dragoncompliance_option ) {
 	delete_option( $dragoncompliance_option );
 }
+
+delete_transient( 'dragoncompliance_schema_retry' );
+delete_transient( 'dragoncompliance_schema_verified' );
 
 wp_clear_scheduled_hook( 'dragoncompliance_daily_scan' );

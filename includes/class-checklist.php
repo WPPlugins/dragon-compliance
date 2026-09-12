@@ -15,6 +15,12 @@ defined( 'ABSPATH' ) || exit;
 class Checklist {
 
 	/**
+	 * Attestation changes whose evidence entry the log refused, kept so a later
+	 * call can write it once the log accepts writes again.
+	 */
+	private const PENDING_EVIDENCE_OPTION = 'dragoncompliance_attestation_evidence_pending';
+
+	/**
 	 * Findings store (for the no-open-criticals check).
 	 *
 	 * @var Findings_Store
@@ -144,28 +150,120 @@ class Checklist {
 	 * @param string $id    Item id.
 	 * @param bool   $value Attested or not.
 	 * @param string $note  Optional note.
-	 * @return bool Whether the id names a manual item.
+	 * @return bool Whether the id names a manual item and the attestation was stored.
 	 */
 	public function attest( string $id, bool $value, string $note = '' ): bool {
-		$id = sanitize_key( $id );
-		if ( ! array_key_exists( $id, $this->manual_definitions() ) ) {
-			return false;
-		}
-		$attestations        = (array) get_option( 'dragoncompliance_attestations', array() );
-		$attestations[ $id ] = array(
-			'attested' => $value,
-			'note'     => sanitize_text_field( $note ),
-			'time'     => time(),
-		);
-		update_option( 'dragoncompliance_attestations', $attestations );
-		$this->evidence->record(
-			'attestation_changed',
+		return $this->attest_many(
 			array(
-				'item'     => $id,
-				'attested' => $value,
+				$id => array(
+					'attested' => $value,
+					'note'     => $note,
+				),
 			)
 		);
-		return true;
+	}
+
+	/**
+	 * Record several manual attestations in one option write.
+	 *
+	 * All items land together or not at all. Evidence is written only after
+	 * the stored option reads back with every changed entry, and only for
+	 * items whose attested flag or note actually changed, so the evidence log
+	 * never asserts an attestation the checklist does not hold.
+	 * update_option's return is not used because it is also false when the
+	 * value was already stored.
+	 *
+	 * @param array<string,array{attested?:bool,note?:string}> $items Entries keyed by item id.
+	 * @return bool Whether every id names a manual item and the entries were stored.
+	 */
+	public function attest_many( array $items ): bool {
+		$manual       = $this->manual_definitions();
+		$previous     = (array) get_option( 'dragoncompliance_attestations', array() );
+		$attestations = $previous;
+		$changed      = array();
+		$now          = time();
+
+		foreach ( $items as $id => $item ) {
+			$id = sanitize_key( (string) $id );
+			if ( ! array_key_exists( $id, $manual ) ) {
+				return false;
+			}
+			$entry  = array(
+				'attested' => ! empty( $item['attested'] ),
+				'note'     => sanitize_text_field( (string) ( $item['note'] ?? '' ) ),
+				'time'     => $now,
+			);
+			$before = isset( $previous[ $id ] ) && is_array( $previous[ $id ] ) ? $previous[ $id ] : array();
+			if ( (bool) ( $before['attested'] ?? false ) === $entry['attested'] && (string) ( $before['note'] ?? '' ) === $entry['note'] ) {
+				continue;
+			}
+			$attestations[ $id ] = $entry;
+			$changed[ $id ]      = $entry['attested'];
+		}
+
+		if ( array() === $changed ) {
+			// Nothing new to store, but an earlier call may have left an evidence
+			// entry unwritten; this is the retry that writes it.
+			return $this->record_attestation_changes( array() );
+		}
+
+		update_option( 'dragoncompliance_attestations', $attestations );
+
+		$stored = (array) get_option( 'dragoncompliance_attestations', array() );
+		foreach ( array_keys( $changed ) as $id ) {
+			if ( ( $stored[ $id ] ?? null ) !== $attestations[ $id ] ) {
+				return false;
+			}
+		}
+
+		return $this->record_attestation_changes( $changed );
+	}
+
+	/**
+	 * Write an evidence entry per changed attestation, keeping any that the log
+	 * refused so a later call can still write it.
+	 *
+	 * The attestation option has already been stored by this point, so an
+	 * identical retry is skipped as unchanged and would never reach this code
+	 * again: without a pending list the audit entry would be lost for good.
+	 *
+	 * @param array<string,bool> $changed Item id => attested.
+	 * @return bool Whether every entry was written.
+	 */
+	private function record_attestation_changes( array $changed ): bool {
+		$pending = (array) get_option( self::PENDING_EVIDENCE_OPTION, array() );
+
+		// Entries from an earlier call go first, so the log catches up in order.
+		$queue = $pending;
+		foreach ( $changed as $id => $attested ) {
+			$queue[ $id ] = (bool) $attested;
+		}
+
+		$unwritten = array();
+		foreach ( $queue as $id => $attested ) {
+			$recorded = $this->evidence->record(
+				'attestation_changed',
+				array(
+					'item'     => (string) $id,
+					'attested' => (bool) $attested,
+				)
+			);
+
+			if ( $recorded < 1 ) {
+				$unwritten[ $id ] = (bool) $attested;
+			}
+		}
+
+		if ( array() === $unwritten ) {
+			if ( array() !== $pending ) {
+				delete_option( self::PENDING_EVIDENCE_OPTION );
+			}
+			return true;
+		}
+
+		update_option( self::PENDING_EVIDENCE_OPTION, $unwritten, false );
+
+		return false;
 	}
 
 	/**

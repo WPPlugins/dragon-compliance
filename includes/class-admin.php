@@ -216,8 +216,14 @@ class Admin {
 			'attestations_saved' => __( 'Attestations saved.', 'dragon-compliance' ),
 			'finding_updated'    => __( 'Finding updated.', 'dragon-compliance' ),
 		);
+		$errors   = array(
+			'attestations_failed' => __( 'Attestations could not be saved: the database refused the write. Nothing was recorded in the evidence log. Please try again.', 'dragon-compliance' ),
+			'finding_not_updated' => __( 'The finding was not updated. It may already have that status, or the database refused the write.', 'dragon-compliance' ),
+		);
 		if ( isset( $messages[ $notice ] ) ) {
 			printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html( $messages[ $notice ] ) );
+		} elseif ( isset( $errors[ $notice ] ) ) {
+			printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $errors[ $notice ] ) );
 		}
 	}
 
@@ -394,15 +400,18 @@ class Admin {
 		$attested  = isset( $_POST['dragoncompliance_attested'] ) ? (array) wp_unslash( $_POST['dragoncompliance_attested'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Items sanitized in attest().
 		$notes     = isset( $_POST['dragoncompliance_note'] ) ? (array) wp_unslash( $_POST['dragoncompliance_note'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Items sanitized in attest().
 
+		$items = array();
 		foreach ( array( 'update_policy', 'security_contact', 'backup_policy', 'staging_process' ) as $id ) {
-			$checklist->attest(
-				$id,
-				! empty( $attested[ $id ] ),
-				sanitize_text_field( (string) ( $notes[ $id ] ?? '' ) )
+			$items[ $id ] = array(
+				'attested' => ! empty( $attested[ $id ] ),
+				'note'     => sanitize_text_field( (string) ( $notes[ $id ] ?? '' ) ),
 			);
 		}
 
-		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=checklist&dragoncompliance_notice=attestations_saved' ) );
+		// One option write for all four items, so a refused write stores none
+		// of them and the failure notice is accurate.
+		$notice = $checklist->attest_many( $items ) ? 'attestations_saved' : 'attestations_failed';
+		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=checklist&dragoncompliance_notice=' . $notice ) );
 		exit;
 	}
 
@@ -417,8 +426,8 @@ class Admin {
 
 		$id      = isset( $_POST['finding_id'] ) ? absint( wp_unslash( $_POST['finding_id'] ) ) : 0;
 		$ignored = ! empty( $_POST['ignore'] );
-		if ( $id > 0 ) {
-			$this->findings->set_ignored( $id, $ignored );
+		$changed = $id > 0 && $this->findings->set_ignored( $id, $ignored );
+		if ( $changed ) {
 			$this->evidence->record(
 				'finding_status_changed',
 				array(
@@ -428,7 +437,8 @@ class Admin {
 			);
 		}
 
-		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=findings&dragoncompliance_notice=finding_updated' ) );
+		$notice = $changed ? 'finding_updated' : 'finding_not_updated';
+		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=findings&dragoncompliance_notice=' . $notice ) );
 		exit;
 	}
 

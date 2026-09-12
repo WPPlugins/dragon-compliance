@@ -150,24 +150,46 @@ class Findings_Store {
 	 * Mark findings resolved.
 	 *
 	 * @param array $ids Finding ids.
-	 * @return int Rows updated.
+	 * @return int[] The ids this call actually transitioned to resolved.
 	 */
-	public function resolve( array $ids ): int {
+	public function resolve( array $ids ): array {
 		global $wpdb;
 		$ids = array_filter( array_map( 'absint', $ids ) );
 		if ( array() === $ids ) {
-			return 0;
+			return array();
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$resolved_at  = current_time( 'mysql', true );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder list is built from counted %d entries; values are absint()ed.
-		return (int) $wpdb->query(
+		$changed = (int) $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET status = 'resolved', resolved_at = %s WHERE id IN ({$placeholders}) AND status = 'open'",
-				array_merge( array( $this->table(), current_time( 'mysql', true ) ), $ids )
+				array_merge( array( $this->table(), $resolved_at ), $ids )
+			)
+		);
+
+		if ( $changed < 1 ) {
+			return array();
+		}
+
+		/*
+		 * The UPDATE only touches rows still open, so asking for two ids can
+		 * transition one: the other may have been ignored or resolved between
+		 * the read and the write. The row count does not say which, so the ids
+		 * carrying the timestamp just written are read back. A caller that
+		 * recorded evidence or fired hooks for every requested id would be
+		 * claiming resolutions that never happened.
+		 */
+		$transitioned = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE id IN ({$placeholders}) AND status = 'resolved' AND resolved_at = %s",
+				array_merge( array( $this->table() ), $ids, array( $resolved_at ) )
 			)
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return array_values( array_map( 'absint', (array) $transitioned ) );
 	}
 
 	/**
@@ -175,11 +197,12 @@ class Findings_Store {
 	 *
 	 * @param int  $id      Finding id.
 	 * @param bool $ignored True to ignore, false to reopen.
+	 * @return bool Whether the row changed status (false on error or no-op).
 	 */
 	public function set_ignored( int $id, bool $ignored ): bool {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return false !== $wpdb->query(
+		return 0 < (int) $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET status = %s WHERE id = %d AND status = %s',
 				$this->table(),

@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,6 +133,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.8 =
+Fixes cases where a failed database write was reported as saved: attestations, finding status changes and scan resolutions are now only recorded in the evidence log once they are actually stored.
+
 = 1.0.7 =
 Adds a one-time WordPress.org review prompt on the Compliance screen after your first scan or SBOM export. No other changes.
 
@@ -146,6 +149,12 @@ Security: your Wordfence token is now stored with authenticated encryption, and 
 Listing and documentation improvements only. Safe to update.
 
 == Changelog ==
+
+= 1.0.8 =
+* Fixed: an attestation whose database write failed was still logged as evidence and reported as saved. All four attestations are now stored in a single write that is read back before any evidence is recorded, evidence is recorded only for items that actually changed, and a refused write shows an error instead of "Attestations saved".
+* Fixed: ignoring or reopening a finding recorded a status-change evidence entry even when the row did not change. Evidence is now recorded only when the status actually changed, and a no-op or failed update shows a notice instead of "Finding updated".
+* Fixed: a scan whose "mark resolved" write failed still recorded resolution evidence and fired the resolved hook for every finding. Resolutions that were not stored are no longer reported, and the next scan retries them.
+* Fixed: the database schema version was stamped even when a table could not be created, which stopped the plugin from retrying. Each table is now checked to exist before the version is recorded; a failure is retried every 10 minutes and shown to administrators as a notice naming the missing tables.
 
 = 1.0.7 =
 * Asks for a WordPress.org review once, only on the Compliance screen and only after a vulnerability scan has completed or an SBOM has been exported. "Maybe later" snoozes it for a month and "No thanks" is permanent.
