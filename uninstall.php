@@ -31,6 +31,8 @@ $dragoncompliance_options = array(
 	'dragoncompliance_feed_meta',
 	'dragoncompliance_last_scan',
 	'dragoncompliance_review_prompt',
+	'dragoncompliance_pro_pointer',
+	'dragoncompliance_pro_pointer_events',
 	'dragoncompliance_schema_failure',
 );
 foreach ( $dragoncompliance_options as $dragoncompliance_option ) {

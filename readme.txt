@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -148,7 +148,14 @@ Security: your Wordfence token is now stored with authenticated encryption, and 
 = 1.0.4 =
 Listing and documentation improvements only. Safe to update.
 
+== Credits ==
+
+The WordPress.org listing icon is drawn with glyphs from Lucide (https://lucide.dev), ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (https://feathericons.com, MIT License). All other copyright (c) for Lucide are held by Lucide Contributors 2022. The plugin itself does not include these icons.
+
 == Changelog ==
+
+= 1.0.9 =
+* An "Upgrade to Pro" link on the Plugins screen, a one-line pointer at the foot of the plugin's own screens, and a single dismissible note once the plugin has done its job. All three disappear when the Pro add-on is active; nothing in the free plugin is locked or changed.
 
 = 1.0.8 =
 * Fixed: an attestation whose database write failed was still logged as evidence and reported as saved. All four attestations are now stored in a single write that is read back before any evidence is recorded, evidence is recorded only for items that actually changed, and a refused write shows an error instead of "Attestations saved".
