@@ -2,22 +2,22 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Dragon Compliance 1.0.0\n"
+"Project-Id-Version: Dragon Compliance 1.0.10\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dragon-compliance\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-15T01:02:13+00:00\n"
+"POT-Creation-Date: 2026-09-24T17:37:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.12.0\n"
+"X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-compliance\n"
 
 #. Plugin Name of the plugin
 #: dragon-compliance.php
 #: includes/class-admin.php:69
-#: includes/class-admin.php:137
+#: includes/class-admin.php:145
 msgid "Dragon Compliance"
 msgstr ""
 
@@ -28,7 +28,7 @@ msgstr ""
 
 #. Description of the plugin
 #: dragon-compliance.php
-msgid "CRA & NIS2 compliance for WordPress — software inventory, CycloneDX SBOM export, known-vulnerability monitoring, readiness checklist and evidence log. All processing stays on your server."
+msgid "CRA & NIS2 compliance for WordPress - software inventory, CycloneDX SBOM export, known-vulnerability monitoring, readiness checklist and evidence log. All processing stays on your server."
 msgstr ""
 
 #. Author of the plugin
@@ -41,11 +41,12 @@ msgstr ""
 msgid "https://dragoncore.ltd"
 msgstr ""
 
-#. translators: 1: percent, 2: passed, 3: total.
+#. translators: 1: readiness percentage, 2: number of checks satisfied, 3: total number of checks.
 #: admin/views/checklist.php:29
-#, php-format
-msgid "Readiness: %1$d%% (%2$d of %3$d checks satisfied)."
-msgstr ""
+msgid "Readiness: %1$s%% (%2$s of %3$s check satisfied)."
+msgid_plural "Readiness: %1$s%% (%2$s of %3$s checks satisfied)."
+msgstr[0] ""
+msgstr[1] ""
 
 #: admin/views/checklist.php:37
 msgid "Automatic checks"
@@ -60,10 +61,14 @@ msgid "These are process facts the plugin cannot detect. Attesting them records 
 msgstr ""
 
 #: admin/views/checklist.php:76
+msgid "Note for this checklist item"
+msgstr ""
+
+#: admin/views/checklist.php:77
 msgid "Note (where is it documented?)"
 msgstr ""
 
-#: admin/views/checklist.php:82
+#: admin/views/checklist.php:83
 msgid "Save attestations"
 msgstr ""
 
@@ -71,55 +76,75 @@ msgstr ""
 msgid "Vulnerability monitoring is not active yet: add your free Wordfence Intelligence API token under Settings."
 msgstr ""
 
-#. translators: %s: human-readable age.
-#: admin/views/dashboard.php:29
-#, php-format
-msgid "Vulnerability data is stale — last refreshed %s ago."
+#: admin/views/dashboard.php:26
+msgid "Vulnerability monitoring is configured but no vulnerability data has been downloaded yet, so nothing has been checked. The feed is fetched by the daily scan - or press \"Scan now\"."
 msgstr ""
 
-#: admin/views/dashboard.php:39
+#. translators: %s: error message.
+#: admin/views/dashboard.php:32
+#: admin/views/dashboard.php:52
+#: admin/views/findings.php:24
+msgid "Last attempt failed: %s"
+msgstr ""
+
+#. translators: %s: human-readable age.
+#: admin/views/dashboard.php:45
+msgid "Vulnerability data is stale - last refreshed %s ago."
+msgstr ""
+
+#: admin/views/dashboard.php:63
 msgid "Readiness score"
 msgstr ""
 
-#. translators: 1: passed count, 2: total count.
-#: admin/views/dashboard.php:45
-#, php-format
-msgid "%1$d of %2$d checks satisfied"
+#. translators: %s: readiness percentage.
+#: admin/views/dashboard.php:68
+msgid "%s%%"
 msgstr ""
 
-#: admin/views/dashboard.php:53
+#. translators: 1: number of checks satisfied, 2: total number of checks.
+#: admin/views/dashboard.php:77
+msgid "%1$s of %2$s check satisfied"
+msgid_plural "%1$s of %2$s checks satisfied"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/views/dashboard.php:85
 msgid "Open findings"
 msgstr ""
 
-#: admin/views/dashboard.php:66
+#. translators: 1: severity label, 2: number of open findings.
+#: admin/views/dashboard.php:94
+msgid "%1$s: %2$s"
+msgstr ""
+
+#: admin/views/dashboard.php:105
 msgid "Monitoring"
 msgstr ""
 
 #. translators: %s: human-readable age.
-#: admin/views/dashboard.php:72
-#, php-format
+#: admin/views/dashboard.php:111
 msgid "Last scan: %s ago."
 msgstr ""
 
-#: admin/views/dashboard.php:77
+#: admin/views/dashboard.php:116
 msgid "No scan has run yet."
 msgstr ""
 
 #. translators: %s: human-readable age.
-#: admin/views/dashboard.php:85
-#, php-format
+#: admin/views/dashboard.php:124
 msgid "Vulnerability data age: %s."
 msgstr ""
 
-#: admin/views/dashboard.php:93
+#: admin/views/dashboard.php:132
 msgid "Scan now"
 msgstr ""
 
-#. translators: %d: number of events.
+#. translators: %s: number of evidence entries.
 #: admin/views/evidence.php:18
-#, php-format
-msgid "%d evidence entries. Every scan, detection, resolution and attestation is recorded here with a timestamp."
-msgstr ""
+msgid "%s evidence entry. Every scan, detection, resolution and attestation is recorded here with a timestamp."
+msgid_plural "%s evidence entries. Every scan, detection, resolution and attestation is recorded here with a timestamp."
+msgstr[0] ""
+msgstr[1] ""
 
 #: admin/views/evidence.php:27
 msgid "ID"
@@ -141,48 +166,66 @@ msgstr ""
 msgid "Sealed"
 msgstr ""
 
+#: admin/views/evidence.php:38
+msgid "Nothing recorded yet. Evidence entries appear automatically as scans run and findings change."
+msgstr ""
+
 #: admin/views/findings.php:14
 msgid "Add your free Wordfence Intelligence API token under Settings to activate vulnerability monitoring."
 msgstr ""
 
 #: admin/views/findings.php:19
-msgid "No findings recorded. That is a good thing — keep the daily scan running."
+msgid "No vulnerability data has been downloaded yet, so these results are not complete. Run a scan to fetch the feed."
 msgstr ""
 
-#: admin/views/findings.php:24
+#: admin/views/findings.php:34
+msgid "No findings recorded. That is a good thing - keep the daily scan running."
+msgstr ""
+
+#: admin/views/findings.php:39
 msgid "Severity"
 msgstr ""
 
-#: admin/views/findings.php:25
+#: admin/views/findings.php:40
 msgid "Component"
 msgstr ""
 
-#: admin/views/findings.php:26
+#: admin/views/findings.php:41
 msgid "Vulnerability"
 msgstr ""
 
-#: admin/views/findings.php:27
+#: admin/views/findings.php:42
 msgid "CVE"
 msgstr ""
 
-#: admin/views/findings.php:28
+#: admin/views/findings.php:43
 msgid "Detected"
 msgstr ""
 
-#: admin/views/findings.php:29
+#: admin/views/findings.php:44
 msgid "Status"
 msgstr ""
 
-#: admin/views/findings.php:30
+#: admin/views/findings.php:45
 msgid "Action"
 msgstr ""
 
-#: admin/views/findings.php:68
+#. translators: 1: component slug, 2: component version.
+#: admin/views/findings.php:63
+msgid "%1$s @ %2$s"
+msgstr ""
+
+#: admin/views/findings.php:89
 msgid "Ignore"
 msgstr ""
 
-#: admin/views/findings.php:70
+#: admin/views/findings.php:91
 msgid "Unignore"
+msgstr ""
+
+#. translators: 1: opening link tag to the Wordfence Intelligence license, 2: closing link tag, 3: opening link tag to the MITRE CVE terms, 4: closing link tag.
+#: admin/views/findings.php:106
+msgid "Vulnerability data © Defiant Inc., provided via Wordfence Intelligence and used under its %1$sCommunity Edition license%2$s. CVE records © The MITRE Corporation, used under the %3$sCVE Terms of Use%4$s."
 msgstr ""
 
 #: admin/views/inventory.php:16
@@ -214,12 +257,12 @@ msgid "HTTPS"
 msgstr ""
 
 #: admin/views/inventory.php:32
-#: admin/views/inventory.php:58
+#: admin/views/inventory.php:65
 msgid "Yes"
 msgstr ""
 
 #: admin/views/inventory.php:32
-#: admin/views/inventory.php:58
+#: admin/views/inventory.php:65
 msgid "No"
 msgstr ""
 
@@ -248,6 +291,7 @@ msgid "Author"
 msgstr ""
 
 #: admin/views/inventory.php:45
+#: includes/class-admin.php:120
 msgid "License"
 msgstr ""
 
@@ -255,35 +299,95 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
+#: admin/views/inventory.php:53
+msgid "No inventory yet - run your first scan from the Dashboard tab to record what this site is running."
+msgstr ""
+
+#: admin/views/license-upsell.php:16
+msgid "Pro installed"
+msgstr ""
+
+#: admin/views/license-upsell.php:17
+msgid "Dragon Compliance Pro is installed. Enter your license key in the Pro settings to activate it."
+msgstr ""
+
+#: admin/views/license-upsell.php:22
+msgid "Unlock Dragon Compliance Pro"
+msgstr ""
+
+#: admin/views/license-upsell.php:24
+msgid "Client-ready, white-label scheduled compliance reports"
+msgstr ""
+
+#: admin/views/license-upsell.php:25
+msgid "SBOM snapshots with diffs, plus SPDX 2.3 export"
+msgstr ""
+
+#: admin/views/license-upsell.php:26
+msgid "Tamper-evident hash-chained evidence log with CSV export"
+msgstr ""
+
+#: admin/views/license-upsell.php:27
+msgid "Time-to-patch metrics that prove updates happen without delay"
+msgstr ""
+
+#: admin/views/license-upsell.php:28
+msgid "Alert routing: multiple recipients, signed webhooks, Slack"
+msgstr ""
+
+#: admin/views/license-upsell.php:29
+msgid "NIS2 Article 21 mapping view"
+msgstr ""
+
+#: admin/views/license-upsell.php:30
+msgid "Priority support"
+msgstr ""
+
+#: admin/views/license-upsell.php:33
+msgid "Get Dragon Compliance Pro"
+msgstr ""
+
 #: admin/views/settings.php:18
 msgid "Wordfence Intelligence API token"
 msgstr ""
 
 #: admin/views/settings.php:23
-msgid "A token is configured (stored encrypted)."
-msgstr ""
-
-#: admin/views/settings.php:27
-msgid "Remove the stored token"
+msgid "The vulnerability feed is provided by your Dragon Compliance Pro licence - no Wordfence token is needed. A token entered here is kept as a fallback."
 msgstr ""
 
 #: admin/views/settings.php:29
-msgid "Enter a new token below to replace the stored one."
+msgid "A token is configured (stored encrypted)."
 msgstr ""
 
 #: admin/views/settings.php:33
+msgid "Remove the stored token"
+msgstr ""
+
+#: admin/views/settings.php:35
+msgid "Enter a new token below to replace the stored one."
+msgstr ""
+
+#: admin/views/settings.php:39
 msgid "Vulnerability data comes from the free Wordfence Intelligence Community Edition feed. Create a free wordfence.com account, then generate a token under Dashboard → Integrations."
 msgstr ""
 
-#: admin/views/settings.php:38
+#: admin/views/settings.php:44
 msgid "Critical alerts"
 msgstr ""
 
-#: admin/views/settings.php:42
+#: admin/views/settings.php:48
 msgid "Email the site admin when a new critical vulnerability is detected"
 msgstr ""
 
-#: admin/views/settings.php:48
+#: admin/views/settings.php:53
+msgid "Delete data on uninstall"
+msgstr ""
+
+#: admin/views/settings.php:57
+msgid "Remove all settings, findings and the evidence log when the plugin is deleted. Leave off to keep your compliance trail through a reinstall."
+msgstr ""
+
+#: admin/views/settings.php:63
 msgid "Save settings"
 msgstr ""
 
@@ -291,57 +395,66 @@ msgstr ""
 msgid "Compliance"
 msgstr ""
 
-#: includes/class-admin.php:94
+#: includes/class-admin.php:101
 msgid "Scanning…"
 msgstr ""
 
-#: includes/class-admin.php:95
+#: includes/class-admin.php:102
 msgid "Scan failed. Check the evidence log."
 msgstr ""
 
-#: includes/class-admin.php:107
+#: includes/class-admin.php:114
 msgid "Dashboard"
 msgstr ""
 
-#: includes/class-admin.php:108
+#: includes/class-admin.php:115
 msgid "Inventory & SBOM"
 msgstr ""
 
-#: includes/class-admin.php:109
+#: includes/class-admin.php:116
 msgid "Findings"
 msgstr ""
 
-#: includes/class-admin.php:110
+#: includes/class-admin.php:117
 msgid "Checklist"
 msgstr ""
 
-#: includes/class-admin.php:111
+#: includes/class-admin.php:118
 msgid "Evidence"
 msgstr ""
 
-#: includes/class-admin.php:112
+#: includes/class-admin.php:119
 msgid "Settings"
 msgstr ""
 
-#: includes/class-admin.php:127
-#: includes/class-admin.php:311
-#: includes/class-admin.php:335
-#: includes/class-admin.php:359
-#: includes/class-admin.php:384
-#: includes/class-admin.php:410
+#: includes/class-admin.php:135
+#: includes/class-admin.php:342
+#: includes/class-admin.php:371
+#: includes/class-admin.php:396
+#: includes/class-admin.php:424
+#: includes/class-admin.php:451
+#: includes/class-review-prompt.php:147
 msgid "Permission denied."
 msgstr ""
 
-#: includes/class-admin.php:194
+#: includes/class-admin.php:215
 msgid "Settings saved."
 msgstr ""
 
-#: includes/class-admin.php:195
+#: includes/class-admin.php:216
 msgid "Attestations saved."
 msgstr ""
 
-#: includes/class-admin.php:196
+#: includes/class-admin.php:217
 msgid "Finding updated."
+msgstr ""
+
+#: includes/class-admin.php:220
+msgid "Attestations could not be saved: the database refused the write. Nothing was recorded in the evidence log. Please try again."
+msgstr ""
+
+#: includes/class-admin.php:221
+msgid "The finding was not updated. It may already have that status, or the database refused the write."
 msgstr ""
 
 #: includes/class-alerts.php:45
@@ -354,184 +467,316 @@ msgstr ""
 
 #. translators: %s: site name.
 #: includes/class-alerts.php:64
-#, php-format
 msgid "[%s] Critical vulnerability detected"
 msgstr ""
 
-#: includes/class-checklist.php:180
+#: includes/class-checklist.php:278
 msgid "Site served over HTTPS"
 msgstr ""
 
-#: includes/class-checklist.php:181
+#: includes/class-checklist.php:279
 msgid "Transport encryption is a baseline CRA expectation."
 msgstr ""
 
-#: includes/class-checklist.php:183
+#: includes/class-checklist.php:281
 msgid "The site URL uses HTTPS."
 msgstr ""
 
-#: includes/class-checklist.php:184
+#: includes/class-checklist.php:282
 msgid "The site URL does not use HTTPS."
 msgstr ""
 
-#: includes/class-checklist.php:190
+#: includes/class-checklist.php:288
 msgid "WordPress core auto-updates enabled"
 msgstr ""
 
-#: includes/class-checklist.php:191
+#: includes/class-checklist.php:289
 msgid "Security updates must be applied without delay."
 msgstr ""
 
-#: includes/class-checklist.php:193
+#: includes/class-checklist.php:291
 msgid "Core automatic updates are active."
 msgstr ""
 
-#: includes/class-checklist.php:194
+#: includes/class-checklist.php:292
 msgid "Core automatic updates are disabled by a constant."
 msgstr ""
 
-#: includes/class-checklist.php:203
+#: includes/class-checklist.php:301
 msgid "All active plugins auto-update"
 msgstr ""
 
-#: includes/class-checklist.php:204
+#: includes/class-checklist.php:302
 msgid "Unpatched plugins are the leading WordPress attack vector."
 msgstr ""
 
-#: includes/class-checklist.php:206
+#: includes/class-checklist.php:304
 msgid "Every active plugin has auto-updates enabled."
 msgstr ""
 
-#: includes/class-checklist.php:207
+#: includes/class-checklist.php:305
 msgid "Some active plugins do not auto-update."
 msgstr ""
 
-#: includes/class-checklist.php:216
+#: includes/class-checklist.php:314
 msgid "Debug mode disabled"
 msgstr ""
 
-#: includes/class-checklist.php:217
+#: includes/class-checklist.php:315
 msgid "WP_DEBUG leaks paths and internals in production."
 msgstr ""
 
-#: includes/class-checklist.php:219
+#: includes/class-checklist.php:317
 msgid "WP_DEBUG is off."
 msgstr ""
 
-#: includes/class-checklist.php:220
+#: includes/class-checklist.php:318
 msgid "WP_DEBUG is enabled."
 msgstr ""
 
-#: includes/class-checklist.php:226
+#: includes/class-checklist.php:324
 msgid "Dashboard file editing disabled"
 msgstr ""
 
-#: includes/class-checklist.php:227
+#: includes/class-checklist.php:325
 msgid "DISALLOW_FILE_EDIT stops an admin compromise becoming code execution."
 msgstr ""
 
-#: includes/class-checklist.php:229
+#: includes/class-checklist.php:327
 msgid "DISALLOW_FILE_EDIT is set."
 msgstr ""
 
-#: includes/class-checklist.php:230
+#: includes/class-checklist.php:328
 msgid "The plugin/theme file editor is available in wp-admin."
 msgstr ""
 
-#: includes/class-checklist.php:236
+#: includes/class-checklist.php:334
 msgid "No default \"admin\" account"
 msgstr ""
 
-#: includes/class-checklist.php:237
+#: includes/class-checklist.php:335
 msgid "The default admin login is the first username brute-force lists try."
 msgstr ""
 
-#: includes/class-checklist.php:239
+#: includes/class-checklist.php:337
 msgid "No user is named \"admin\"."
 msgstr ""
 
-#: includes/class-checklist.php:240
+#: includes/class-checklist.php:338
 msgid "A user with the login \"admin\" exists."
 msgstr ""
 
-#: includes/class-checklist.php:246
+#: includes/class-checklist.php:344
 msgid "Two-factor authentication available"
 msgstr ""
 
-#: includes/class-checklist.php:247
+#: includes/class-checklist.php:345
 msgid "Strong authentication is expected under CRA and NIS2."
 msgstr ""
 
-#: includes/class-checklist.php:249
+#: includes/class-checklist.php:347
 msgid "A two-factor authentication plugin is active."
 msgstr ""
 
-#: includes/class-checklist.php:250
+#: includes/class-checklist.php:348
 msgid "No known two-factor authentication plugin detected."
 msgstr ""
 
-#: includes/class-checklist.php:267
+#: includes/class-checklist.php:365
 msgid "No open critical vulnerabilities"
 msgstr ""
 
-#: includes/class-checklist.php:268
+#: includes/class-checklist.php:366
 msgid "Known-exploitable components must be patched or removed."
 msgstr ""
 
-#: includes/class-checklist.php:270
+#: includes/class-checklist.php:368
 msgid "No open critical findings."
 msgstr ""
 
-#: includes/class-checklist.php:271
-msgid "Critical findings are open — review the Findings tab."
+#: includes/class-checklist.php:369
+msgid "Critical findings are open - review the Findings tab."
 msgstr ""
 
-#: includes/class-checklist.php:288
+#: includes/class-checklist.php:386
 msgid "Documented update policy"
 msgstr ""
 
-#: includes/class-checklist.php:289
+#: includes/class-checklist.php:387
 msgid "A written policy stating how quickly security updates are applied."
 msgstr ""
 
-#: includes/class-checklist.php:293
+#: includes/class-checklist.php:391
 msgid "Published security contact"
 msgstr ""
 
-#: includes/class-checklist.php:294
+#: includes/class-checklist.php:392
 msgid "A route for reporting vulnerabilities in your site or product."
 msgstr ""
 
-#: includes/class-checklist.php:298
+#: includes/class-checklist.php:396
 msgid "Working backup and restore process"
 msgstr ""
 
-#: includes/class-checklist.php:299
+#: includes/class-checklist.php:397
 msgid "Backups exist, run on a schedule, and a restore has been tested."
 msgstr ""
 
-#: includes/class-checklist.php:303
+#: includes/class-checklist.php:401
 msgid "Changes tested before production"
 msgstr ""
 
-#: includes/class-checklist.php:304
+#: includes/class-checklist.php:402
 msgid "Updates and changes are verified on staging before going live."
 msgstr ""
 
-#: includes/class-feed.php:111
+#: includes/class-feed.php:449
 msgid "No Wordfence Intelligence API token is configured."
 msgstr ""
 
+#: includes/class-feed.php:473
+msgid "Could not create a temporary file for the vulnerability feed."
+msgstr ""
+
 #. translators: %d: HTTP status code.
-#: includes/class-feed.php:149
-#, php-format
+#: includes/class-feed.php:507
 msgid "Vulnerability feed request failed with HTTP %d."
 msgstr ""
 
-#: includes/class-feed.php:157
+#: includes/class-feed.php:518
 msgid "Vulnerability feed response exceeded the size limit."
 msgstr ""
 
-#: includes/class-feed.php:163
-msgid "Vulnerability feed response was not valid JSON."
+#: includes/class-feed.php:525
+msgid "Vulnerability feed response could not be parsed."
+msgstr ""
+
+#. translators: %s: list of table names.
+#: includes/class-installer.php:162
+msgid "Dragon Compliance could not create its database tables (%s). Check that the database user may CREATE TABLE; the plugin retries every 10 minutes."
+msgstr ""
+
+#: includes/class-labels.php:25
+msgid "Critical"
+msgstr ""
+
+#: includes/class-labels.php:26
+msgid "High"
+msgstr ""
+
+#: includes/class-labels.php:27
+msgid "Medium"
+msgstr ""
+
+#: includes/class-labels.php:28
+msgid "Low"
+msgstr ""
+
+#: includes/class-labels.php:29
+msgid "Unknown"
+msgstr ""
+
+#: includes/class-labels.php:41
+msgid "Open"
+msgstr ""
+
+#: includes/class-labels.php:42
+msgid "Ignored"
+msgstr ""
+
+#: includes/class-labels.php:43
+msgid "Resolved"
+msgstr ""
+
+#: includes/class-labels.php:55
+msgid "WordPress core"
+msgstr ""
+
+#: includes/class-labels.php:56
+msgid "Plugin"
+msgstr ""
+
+#: includes/class-labels.php:57
+msgid "Theme"
+msgstr ""
+
+#: includes/class-labels.php:69
+msgid "Scan completed"
+msgstr ""
+
+#: includes/class-labels.php:70
+msgid "Vulnerability detected"
+msgstr ""
+
+#: includes/class-labels.php:71
+msgid "Vulnerability resolved"
+msgstr ""
+
+#: includes/class-labels.php:72
+msgid "Finding status changed"
+msgstr ""
+
+#: includes/class-labels.php:73
+msgid "Attestation changed"
+msgstr ""
+
+#: includes/class-labels.php:74
+msgid "Vulnerability feed fetch failed"
+msgstr ""
+
+#: includes/class-labels.php:75
+msgid "Scheduled report not delivered"
+msgstr ""
+
+#: includes/class-pro-pointer.php:145
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/class-pro-pointer.php:159
+msgid "Need a zero-setup vulnerability feed, reports and alerting?"
+msgstr ""
+
+#: includes/class-pro-pointer.php:161
+msgid "See Dragon Compliance Pro"
+msgstr ""
+
+#: includes/class-pro-pointer.php:175
+msgid "Dragon Compliance is doing its job."
+msgstr ""
+
+#: includes/class-pro-pointer.php:176
+msgid "Dragon Compliance Pro adds a zero-setup vulnerability feed, white-label reports, SBOM snapshots and diffs, hash-chained evidence, time-to-patch and alert routing."
+msgstr ""
+
+#: includes/class-pro-pointer.php:179
+msgid "See what Pro adds"
+msgstr ""
+
+#: includes/class-pro-pointer.php:180
+msgid "Not now"
+msgstr ""
+
+#: includes/class-pro-pointer.php:181
+#: includes/class-review-prompt.php:136
+msgid "No thanks"
+msgstr ""
+
+#: includes/class-pro-pointer.php:192
+msgid "You are not allowed to do that."
+msgstr ""
+
+#: includes/class-review-prompt.php:130
+msgid "Is Dragon Compliance earning its keep?"
+msgstr ""
+
+#: includes/class-review-prompt.php:131
+msgid "A short review on WordPress.org helps other people find it. It takes about a minute, and we read every one."
+msgstr ""
+
+#: includes/class-review-prompt.php:134
+msgid "Leave a review"
+msgstr ""
+
+#: includes/class-review-prompt.php:135
+msgid "Maybe later"
 msgstr ""

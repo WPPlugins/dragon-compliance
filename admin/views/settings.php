@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 				<?php if ( $dragoncompliance_view['proxied'] ) : ?>
 					<p>
 						<span class="dragoncompliance-state dragoncompliance-state-pass">&#10003;</span>
-						<?php esc_html_e( 'The vulnerability feed is provided by your Dragon Compliance Pro licence — no Wordfence token is needed. A token entered here is kept as a fallback.', 'dragon-compliance' ); ?>
+						<?php esc_html_e( 'The vulnerability feed is provided by your Dragon Compliance Pro licence - no Wordfence token is needed. A token entered here is kept as a fallback.', 'dragon-compliance' ); ?>
 					</p>
 				<?php endif; ?>
 				<?php if ( $dragoncompliance_view['has_token'] ) : ?>

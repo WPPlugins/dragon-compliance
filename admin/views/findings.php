@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || exit;
 <?php endif; ?>
 
 <?php if ( array() === $dragoncompliance_view['findings'] ) : ?>
-	<p><?php esc_html_e( 'No findings recorded. That is a good thing — keep the daily scan running.', 'dragon-compliance' ); ?></p>
+	<p><?php esc_html_e( 'No findings recorded. That is a good thing - keep the daily scan running.', 'dragon-compliance' ); ?></p>
 <?php else : ?>
 	<table class="widefat striped">
 		<thead>
@@ -50,15 +50,21 @@ defined( 'ABSPATH' ) || exit;
 				<tr>
 					<td>
 						<span class="dragoncompliance-badge dragoncompliance-badge-<?php echo esc_attr( (string) $dragoncompliance_finding['severity'] ); ?>">
-							<?php echo esc_html( (string) $dragoncompliance_finding['severity'] ); ?>
+							<?php echo esc_html( \DragonCompliance\Labels::severity( (string) $dragoncompliance_finding['severity'] ) ); ?>
 						</span>
 						<?php if ( $dragoncompliance_finding['cvss'] > 0 ) : ?>
 							<small><?php echo esc_html( number_format_i18n( (float) $dragoncompliance_finding['cvss'], 1 ) ); ?></small>
 						<?php endif; ?>
 					</td>
 					<td>
-						<code><?php echo esc_html( (string) $dragoncompliance_finding['component_slug'] ); ?></code>
-						<?php echo esc_html( ' @ ' . (string) $dragoncompliance_finding['component_version'] ); ?>
+						<?php
+						printf(
+							/* translators: 1: component slug, 2: component version. */
+							esc_html__( '%1$s @ %2$s', 'dragon-compliance' ),
+							'<code>' . esc_html( (string) $dragoncompliance_finding['component_slug'] ) . '</code>',
+							esc_html( (string) $dragoncompliance_finding['component_version'] )
+						);
+						?>
 					</td>
 					<td><?php echo esc_html( (string) $dragoncompliance_finding['title'] ); ?></td>
 					<td>
@@ -70,8 +76,8 @@ defined( 'ABSPATH' ) || exit;
 							&mdash;
 						<?php endif; ?>
 					</td>
-					<td><?php echo esc_html( (string) $dragoncompliance_finding['detected_at'] ); ?></td>
-					<td><?php echo esc_html( (string) $dragoncompliance_finding['status'] ); ?></td>
+					<td><?php echo esc_html( \DragonCompliance\Labels::datetime( (string) $dragoncompliance_finding['detected_at'] ) ); ?></td>
+					<td><?php echo esc_html( \DragonCompliance\Labels::finding_status( (string) $dragoncompliance_finding['status'] ) ); ?></td>
 					<td>
 						<?php if ( in_array( $dragoncompliance_finding['status'], array( 'open', 'ignored' ), true ) ) : ?>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">

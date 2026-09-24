@@ -50,13 +50,13 @@ $dragoncompliance_env = $dragoncompliance_view['environment'];
 		<?php if ( empty( $dragoncompliance_view['components'] ) ) : ?>
 			<tr>
 				<td colspan="7">
-					<?php esc_html_e( 'No inventory yet — run your first scan from the Dashboard tab to record what this site is running.', 'dragon-compliance' ); ?>
+					<?php esc_html_e( 'No inventory yet - run your first scan from the Dashboard tab to record what this site is running.', 'dragon-compliance' ); ?>
 				</td>
 			</tr>
 		<?php endif; ?>
 		<?php foreach ( $dragoncompliance_view['components'] as $dragoncompliance_component ) : ?>
 			<tr>
-				<td><?php echo esc_html( (string) $dragoncompliance_component['type'] ); ?></td>
+				<td><?php echo esc_html( \DragonCompliance\Labels::component_type( (string) $dragoncompliance_component['type'] ) ); ?></td>
 				<td><?php echo esc_html( (string) $dragoncompliance_component['name'] ); ?></td>
 				<td><code><?php echo esc_html( (string) $dragoncompliance_component['slug'] ); ?></code></td>
 				<td><?php echo esc_html( (string) $dragoncompliance_component['version'] ); ?></td>

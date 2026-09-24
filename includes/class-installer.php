@@ -158,9 +158,9 @@ final class Installer {
 			'<div class="notice notice-error"><p>%s</p></div>',
 			esc_html(
 				sprintf(
-					/* translators: %s: comma-separated table names. */
+					/* translators: %s: list of table names. */
 					__( 'Dragon Compliance could not create its database tables (%s). Check that the database user may CREATE TABLE; the plugin retries every 10 minutes.', 'dragon-compliance' ),
-					implode( ', ', $failure['tables'] )
+					implode( wp_get_list_item_separator(), $failure['tables'] )
 				)
 			)
 		);

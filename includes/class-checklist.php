@@ -366,7 +366,7 @@ class Checklist {
 				'description' => __( 'Known-exploitable components must be patched or removed.', 'dragon-compliance' ),
 				'category'    => 'update-management',
 				'pass_detail' => __( 'No open critical findings.', 'dragon-compliance' ),
-				'fail_detail' => __( 'Critical findings are open — review the Findings tab.', 'dragon-compliance' ),
+				'fail_detail' => __( 'Critical findings are open - review the Findings tab.', 'dragon-compliance' ),
 				'check'       => static function () use ( $findings ): bool {
 					$by_severity = $findings->open_by_severity();
 					return empty( $by_severity['critical'] );

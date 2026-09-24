@@ -25,11 +25,11 @@ $dragoncompliance_manual = array_filter(
 <p>
 	<?php
 	printf(
-		/* translators: 1: percent, 2: passed, 3: total. */
-		esc_html__( 'Readiness: %1$d%% (%2$d of %3$d checks satisfied).', 'dragon-compliance' ),
-		(int) $dragoncompliance_view['score']['percent'],
-		(int) $dragoncompliance_view['score']['passed'],
-		(int) $dragoncompliance_view['score']['total']
+		/* translators: 1: readiness percentage, 2: number of checks satisfied, 3: total number of checks. */
+		esc_html( _n( 'Readiness: %1$s%% (%2$s of %3$s check satisfied).', 'Readiness: %1$s%% (%2$s of %3$s checks satisfied).', (int) $dragoncompliance_view['score']['total'], 'dragon-compliance' ) ),
+		esc_html( number_format_i18n( (int) $dragoncompliance_view['score']['percent'] ) ),
+		esc_html( number_format_i18n( (int) $dragoncompliance_view['score']['passed'] ) ),
+		esc_html( number_format_i18n( (int) $dragoncompliance_view['score']['total'] ) )
 	);
 	?>
 </p>
