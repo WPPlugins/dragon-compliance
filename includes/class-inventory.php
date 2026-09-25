@@ -71,6 +71,10 @@ class Inventory {
 
 		$plugins = array();
 		foreach ( call_user_func( $this->plugins_provider ) as $file => $data ) {
+			// Folder plugins are keyed by their folder, a single-file plugin by
+			// its file name (hello.php). The key stays stable because stored SBOM
+			// snapshots and bom-refs use it; slug_map() adds the names the
+			// vulnerability feed uses for single-file plugins.
 			$slug      = strtok( $file, '/' );
 			$plugins[] = array(
 				'type'    => 'plugin',
@@ -145,7 +149,42 @@ class Inventory {
 				$map[ $type ][ (string) $component['slug'] ] = (string) $component['version'];
 			}
 		}
+
+		// Aliases go in after every real slug so they never shadow a folder
+		// plugin of the same name.
+		foreach ( $map['plugin'] as $slug => $version ) {
+			foreach ( self::plugin_aliases( (string) $slug ) as $alias ) {
+				if ( ! isset( $map['plugin'][ $alias ] ) ) {
+					$map['plugin'][ $alias ] = $version;
+				}
+			}
+		}
 		return $map;
+	}
+
+	/**
+	 * Feed lookup names for a single-file plugin keyed by its file name.
+	 *
+	 * The feed names plugins by their WordPress.org slug: a known file maps
+	 * to its directory slug (hello.php is hello-dolly), and any other file is
+	 * also tried by its name without the extension.
+	 *
+	 * @param string $slug Inventory slug.
+	 * @return string[] Extra lookup keys, empty for folder plugins.
+	 */
+	public static function plugin_aliases( string $slug ): array {
+		if ( ! preg_match( '/^(.+)\.php$/i', $slug, $parts ) ) {
+			return array();
+		}
+		$known   = array(
+			'hello.php' => 'hello-dolly',
+		);
+		$aliases = array();
+		if ( isset( $known[ strtolower( $slug ) ] ) ) {
+			$aliases[] = $known[ strtolower( $slug ) ];
+		}
+		$aliases[] = $parts[1];
+		return array_values( array_unique( $aliases ) );
 	}
 
 	/**

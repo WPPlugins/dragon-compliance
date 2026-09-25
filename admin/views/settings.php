@@ -47,6 +47,15 @@ defined( 'ABSPATH' ) || exit;
 					<input type="checkbox" name="dragoncompliance_alert_enabled" value="1" <?php checked( $dragoncompliance_view['alert_enabled'] ); ?> />
 					<?php esc_html_e( 'Email the site admin when a new critical vulnerability is detected', 'dragon-compliance' ); ?>
 				</label>
+				<?php if ( 'routed' === $dragoncompliance_view['pro_alerts'] ) : ?>
+					<p class="description">
+						<?php esc_html_e( 'With a Dragon Compliance Pro licence active, alerts are routed by Pro to its alert recipients instead. When none are set, this setting decides whether the site admin gets them.', 'dragon-compliance' ); ?>
+					</p>
+				<?php elseif ( 'update' === $dragoncompliance_view['pro_alerts'] ) : ?>
+					<p class="description">
+						<?php esc_html_e( 'Update Dragon Compliance Pro to the latest version so this setting is respected while a Pro licence is active.', 'dragon-compliance' ); ?>
+					</p>
+				<?php endif; ?>
 			</td>
 		</tr>
 		<tr>

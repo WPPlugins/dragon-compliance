@@ -118,6 +118,99 @@ class Findings_Store {
 	}
 
 	/**
+	 * Record a matched feed record as an open finding.
+	 *
+	 * The table holds one row per (vuln_id, component_slug), so a plain insert
+	 * of a vulnerability seen before hits the unique key and is lost. A
+	 * resolved row is reopened instead (the vulnerability came back, e.g. a
+	 * downgrade or a reinstall), an ignored row stays ignored, and only a
+	 * never-seen pair is inserted.
+	 *
+	 * @param array $record Matched record (Matcher::matches shape).
+	 * @return array{id:int,action:string} action is inserted, reopened, ignored, open or failed; id is 0 unless inserted or reopened.
+	 */
+	public function upsert( array $record ): array {
+		global $wpdb;
+		$vuln_id = sanitize_text_field( (string) ( $record['vuln_id'] ?? '' ) );
+		$slug    = sanitize_text_field( (string) ( $record['slug'] ?? '' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$existing = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT id, status FROM %i WHERE vuln_id = %s AND component_slug = %s', $this->table(), $vuln_id, $slug ),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $existing ) ) {
+			$id = $this->insert_new( $record );
+			return array(
+				'id'     => $id,
+				'action' => $id > 0 ? 'inserted' : 'failed',
+			);
+		}
+
+		$status = (string) ( $existing['status'] ?? '' );
+		if ( 'resolved' !== $status ) {
+			return array(
+				'id'     => 0,
+				'action' => 'ignored' === $status ? 'ignored' : 'open',
+			);
+		}
+
+		$id = (int) $existing['id'];
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$changed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET status = 'open', resolved_at = NULL, component_version = %s, cve = %s, title = %s, severity = %s, cvss = %f, affected_range = %s, detected_at = %s WHERE id = %d AND status = 'resolved'",
+				$this->table(),
+				sanitize_text_field( (string) ( $record['installed_version'] ?? '' ) ),
+				sanitize_text_field( (string) ( $record['cve'] ?? '' ) ),
+				sanitize_text_field( (string) ( $record['title'] ?? '' ) ),
+				sanitize_key( (string) ( $record['severity'] ?? 'unknown' ) ),
+				(float) ( $record['cvss'] ?? 0 ),
+				sanitize_text_field( self::range_label( (array) ( $record['affected'] ?? array() ) ) ),
+				current_time( 'mysql', true ),
+				$id
+			)
+		);
+
+		return 0 < (int) $changed
+			? array(
+				'id'     => $id,
+				'action' => 'reopened',
+			)
+			: array(
+				'id'     => 0,
+				'action' => 'failed',
+			);
+	}
+
+	/**
+	 * Record the installed version an open finding now applies to.
+	 *
+	 * The write only lands while the row is still open and still holds the
+	 * version the caller read, so a concurrent scan cannot record the same
+	 * change twice.
+	 *
+	 * @param int    $id   Finding id.
+	 * @param string $from Version the row held when read.
+	 * @param string $to   Version now installed.
+	 * @return bool Whether the row changed.
+	 */
+	public function update_version( int $id, string $from, string $to ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return 0 < (int) $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET component_version = %s WHERE id = %d AND status = 'open' AND component_version = %s",
+				$this->table(),
+				sanitize_text_field( $to ),
+				$id,
+				$from
+			)
+		);
+	}
+
+	/**
 	 * Insert a new open finding from a matched feed record.
 	 *
 	 * @param array $record Matched record (Matcher::matches shape).

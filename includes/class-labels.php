@@ -66,13 +66,15 @@ final class Labels {
 	 */
 	public static function evidence_event( string $code ): string {
 		$labels = array(
-			'scan_complete'          => __( 'Scan completed', 'dragon-compliance' ),
-			'vuln_detected'          => __( 'Vulnerability detected', 'dragon-compliance' ),
-			'vuln_resolved'          => __( 'Vulnerability resolved', 'dragon-compliance' ),
-			'finding_status_changed' => __( 'Finding status changed', 'dragon-compliance' ),
-			'attestation_changed'    => __( 'Attestation changed', 'dragon-compliance' ),
-			'feed_fetch_failed'      => __( 'Vulnerability feed fetch failed', 'dragon-compliance' ),
-			'report_send_failed'     => __( 'Scheduled report not delivered', 'dragon-compliance' ),
+			'scan_complete'           => __( 'Scan completed', 'dragon-compliance' ),
+			'vuln_detected'           => __( 'Vulnerability detected', 'dragon-compliance' ),
+			'vuln_resolved'           => __( 'Vulnerability resolved', 'dragon-compliance' ),
+			'vuln_reopened'           => __( 'Vulnerability reopened', 'dragon-compliance' ),
+			'finding_status_changed'  => __( 'Finding status changed', 'dragon-compliance' ),
+			'finding_version_changed' => __( 'Installed version updated on an open finding', 'dragon-compliance' ),
+			'attestation_changed'     => __( 'Attestation changed', 'dragon-compliance' ),
+			'feed_fetch_failed'       => __( 'Vulnerability feed fetch failed', 'dragon-compliance' ),
+			'report_send_failed'      => __( 'Scheduled report not delivered', 'dragon-compliance' ),
 		);
 		return $labels[ $code ] ?? $code;
 	}

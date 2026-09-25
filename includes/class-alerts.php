@@ -49,7 +49,8 @@ class Alerts {
 			$lines[] = sprintf(
 				'- [%1$s] %2$s%3$s',
 				(string) ( $finding['slug'] ?? '' ),
-				(string) ( $finding['title'] ?? '' ),
+				// Plain-text mail: sanitize_text_field() stored "<=" as "&lt;=".
+				wp_specialchars_decode( (string) ( $finding['title'] ?? '' ), ENT_QUOTES ),
 				! empty( $finding['cve'] ) ? ' (' . (string) $finding['cve'] . ')' : ''
 			);
 		}
@@ -62,7 +63,7 @@ class Alerts {
 			sprintf(
 				/* translators: %s: site name. */
 				__( '[%s] Critical vulnerability detected', 'dragon-compliance' ),
-				get_bloginfo( 'name' )
+				wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES )
 			),
 			implode( "\n", $lines )
 		);

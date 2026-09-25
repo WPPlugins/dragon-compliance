@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Dragon Compliance 1.0.10\n"
+"Project-Id-Version: Dragon Compliance 1.0.11\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dragon-compliance\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-24T17:37:56+00:00\n"
+"POT-Creation-Date: 2026-09-25T04:19:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-compliance\n"
@@ -379,15 +379,23 @@ msgstr ""
 msgid "Email the site admin when a new critical vulnerability is detected"
 msgstr ""
 
-#: admin/views/settings.php:53
+#: admin/views/settings.php:52
+msgid "With a Dragon Compliance Pro licence active, alerts are routed by Pro to its alert recipients instead. When none are set, this setting decides whether the site admin gets them."
+msgstr ""
+
+#: admin/views/settings.php:56
+msgid "Update Dragon Compliance Pro to the latest version so this setting is respected while a Pro licence is active."
+msgstr ""
+
+#: admin/views/settings.php:62
 msgid "Delete data on uninstall"
 msgstr ""
 
-#: admin/views/settings.php:57
+#: admin/views/settings.php:66
 msgid "Remove all settings, findings and the evidence log when the plugin is deleted. Leave off to keep your compliance trail through a reinstall."
 msgstr ""
 
-#: admin/views/settings.php:63
+#: admin/views/settings.php:72
 msgid "Save settings"
 msgstr ""
 
@@ -428,11 +436,11 @@ msgid "Settings"
 msgstr ""
 
 #: includes/class-admin.php:135
-#: includes/class-admin.php:342
-#: includes/class-admin.php:371
-#: includes/class-admin.php:396
-#: includes/class-admin.php:424
-#: includes/class-admin.php:451
+#: includes/class-admin.php:360
+#: includes/class-admin.php:389
+#: includes/class-admin.php:414
+#: includes/class-admin.php:442
+#: includes/class-admin.php:469
 #: includes/class-review-prompt.php:147
 msgid "Permission denied."
 msgstr ""
@@ -461,12 +469,12 @@ msgstr ""
 msgid "Dragon Compliance detected new critical vulnerabilities on your site:"
 msgstr ""
 
-#: includes/class-alerts.php:57
+#: includes/class-alerts.php:58
 msgid "Review them in wp-admin under Tools → Compliance."
 msgstr ""
 
 #. translators: %s: site name.
-#: includes/class-alerts.php:64
+#: includes/class-alerts.php:65
 msgid "[%s] Critical vulnerability detected"
 msgstr ""
 
@@ -713,18 +721,26 @@ msgid "Vulnerability resolved"
 msgstr ""
 
 #: includes/class-labels.php:72
-msgid "Finding status changed"
+msgid "Vulnerability reopened"
 msgstr ""
 
 #: includes/class-labels.php:73
-msgid "Attestation changed"
+msgid "Finding status changed"
 msgstr ""
 
 #: includes/class-labels.php:74
-msgid "Vulnerability feed fetch failed"
+msgid "Installed version updated on an open finding"
 msgstr ""
 
 #: includes/class-labels.php:75
+msgid "Attestation changed"
+msgstr ""
+
+#: includes/class-labels.php:76
+msgid "Vulnerability feed fetch failed"
+msgstr ""
+
+#: includes/class-labels.php:77
 msgid "Scheduled report not delivered"
 msgstr ""
 

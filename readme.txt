@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.10
+Stable tag: 1.0.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,6 +133,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.11 =
+Vulnerabilities that come back are reported again.
+
 = 1.0.10 =
 Translation-ready throughout.
 
@@ -156,6 +159,11 @@ Listing and documentation improvements only. Safe to update.
 The WordPress.org listing icon is drawn with glyphs from Lucide (https://lucide.dev), ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (https://feathericons.com, MIT License). All other copyright (c) for Lucide are held by Lucide Contributors 2022. The plugin itself does not include these icons.
 
 == Changelog ==
+
+= 1.0.11 =
+* Fixed: a vulnerability that returns after it was resolved (for example after a plugin downgrade) is reopened and alerted again.
+* Single-file plugins such as Hello Dolly are matched against the vulnerability feed.
+* Alert text shows vulnerability titles correctly.
 
 = 1.0.10 =
 * Every screen, email and alert is now translatable, so community translations from translate.wordpress.org cover the whole plugin. Counts use proper plural forms, and numbers and dates follow your site's language.

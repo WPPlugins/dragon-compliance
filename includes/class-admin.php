@@ -329,8 +329,26 @@ class Admin {
 			'alert_enabled' => (bool) get_option( 'dragoncompliance_alert_enabled', 1 ),
 			'has_token'     => $this->feed->token_set(),
 			'proxied'       => $this->feed->is_proxied(),
+			'pro_alerts'    => self::pro_alert_note( defined( 'DRAGONCOMPLIANCEPRO_VERSION' ) ? (string) constant( 'DRAGONCOMPLIANCEPRO_VERSION' ) : null ),
 		);
 		require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/settings.php';
+	}
+
+	/**
+	 * Which note the alert setting needs for the installed Pro add-on.
+	 *
+	 * Pro 1.0.9 routes alerts and falls back to the site admin when this
+	 * setting is on. Earlier Pro releases override the setting to off while
+	 * licensed, so describing the fallback there would be wrong.
+	 *
+	 * @param string|null $pro_version Installed Pro version, null without Pro.
+	 * @return string 'routed', 'update', or '' for no note.
+	 */
+	public static function pro_alert_note( ?string $pro_version ): string {
+		if ( null === $pro_version || '' === $pro_version ) {
+			return '';
+		}
+		return version_compare( $pro_version, '1.0.9', '>=' ) ? 'routed' : 'update';
 	}
 
 	/**

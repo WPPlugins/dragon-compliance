@@ -67,6 +67,50 @@ class Scanner {
 	}
 
 	/**
+	 * Bring each still-open finding's recorded version up to the one now
+	 * installed.
+	 *
+	 * A component updated to a release that is still vulnerable keeps its
+	 * finding open, and without this the finding goes on naming the version
+	 * it was first detected on. One evidence row per actual change; a scan
+	 * that finds the same version writes nothing.
+	 *
+	 * @param array $open_rows Open findings as read before this scan.
+	 * @param array $matched   Matched records from Matcher::matches().
+	 */
+	private function record_version_changes( array $open_rows, array $matched ): void {
+		$installed = array();
+		foreach ( $matched as $record ) {
+			// Sanitised as insert_new() stores it, so an unchanged version compares equal.
+			$installed[ $record['vuln_id'] . '|' . $record['slug'] ] = sanitize_text_field( (string) ( $record['installed_version'] ?? '' ) );
+		}
+
+		foreach ( $open_rows as $row ) {
+			$key = (string) $row['vuln_id'] . '|' . (string) $row['component_slug'];
+			if ( ! isset( $installed[ $key ] ) || '' === $installed[ $key ] ) {
+				continue;
+			}
+
+			$from = (string) ( $row['component_version'] ?? '' );
+			$to   = $installed[ $key ];
+			if ( $from === $to || ! $this->findings->update_version( (int) $row['id'], $from, $to ) ) {
+				continue;
+			}
+
+			$this->evidence->record(
+				'finding_version_changed',
+				array(
+					'finding_id' => (int) $row['id'],
+					'vuln_id'    => (string) $row['vuln_id'],
+					'slug'       => (string) $row['component_slug'],
+					'from'       => $from,
+					'to'         => $to,
+				)
+			);
+		}
+	}
+
+	/**
 	 * Run a full scan.
 	 *
 	 * @return array Summary.
@@ -99,21 +143,30 @@ class Scanner {
 		// finding resolved — a false all-clear plus bogus resolution evidence,
 		// the worst outcome for a compliance tool. A non-empty but stale index
 		// (e.g. after a fetch error) is still real data, so it processes fully.
-		$diff = array() !== $index
-			? Matcher::diff( $this->findings->open(), $matched )
+		$open_rows = array() !== $index ? $this->findings->open() : array();
+		$diff      = array() !== $index
+			? Matcher::diff( $open_rows, $matched )
 			: array(
 				'new'          => array(),
 				'resolved_ids' => array(),
 			);
 
+		$this->record_version_changes( $open_rows, $matched );
+
 		$new_findings = array();
 		foreach ( $diff['new'] as $record ) {
-			$id = $this->findings->insert_new( $record );
+			// Only open rows are diffed, so a vulnerability seen before arrives
+			// here too: upsert() reopens a resolved row and leaves an ignored
+			// one alone rather than colliding with the table's unique key.
+			$upsert = $this->findings->upsert( $record );
+			$id     = (int) $upsert['id'];
 			if ( $id > 0 ) {
+				$reopened             = 'reopened' === $upsert['action'];
 				$record['finding_id'] = $id;
+				$record['reopened']   = $reopened;
 				$new_findings[]       = $record;
 				$this->evidence->record(
-					'vuln_detected',
+					$reopened ? 'vuln_reopened' : 'vuln_detected',
 					array(
 						'finding_id' => $id,
 						'vuln_id'    => (string) ( $record['vuln_id'] ?? '' ),
@@ -123,9 +176,10 @@ class Scanner {
 					)
 				);
 				/**
-				 * Fires when a new vulnerability is detected.
+				 * Fires when a new vulnerability is detected, or a resolved one
+				 * comes back (the record's 'reopened' key is then true).
 				 *
-				 * @param array $record Matched record incl. finding_id.
+				 * @param array $record Matched record incl. finding_id and reopened.
 				 */
 				do_action( 'dragoncompliance_vuln_detected', $record );
 			}
