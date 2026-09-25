@@ -3,7 +3,7 @@
  * Plugin Name: Dragon Compliance
  * Plugin URI: https://dragoncore.ltd/plugins/dragon-compliance
  * Description: CRA & NIS2 compliance for WordPress - software inventory, CycloneDX SBOM export, known-vulnerability monitoring, readiness checklist and evidence log. All processing stays on your server.
- * Version: 1.0.11
+ * Version: 1.0.12
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Dragon Core
@@ -21,7 +21,7 @@ namespace DragonCompliance;
 defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
-define( 'DRAGONCOMPLIANCE_VERSION', '1.0.11' );
+define( 'DRAGONCOMPLIANCE_VERSION', '1.0.12' );
 define( 'DRAGONCOMPLIANCE_DB_VERSION', '2' );
 define( 'DRAGONCOMPLIANCE_PLUGIN_FILE', __FILE__ );
 define( 'DRAGONCOMPLIANCE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -59,14 +59,36 @@ function dragoncompliance_activate(): void {
 register_activation_hook( __FILE__, __NAMESPACE__ . '\dragoncompliance_activate' );
 
 /**
- * Deactivation: clear the daily scan cron.
+ * Clear this site's scheduled scans.
  */
-function dragoncompliance_deactivate(): void {
-	$timestamp = wp_next_scheduled( 'dragoncompliance_daily_scan' );
-	if ( $timestamp ) {
-		wp_unschedule_event( $timestamp, 'dragoncompliance_daily_scan' );
-	}
+function dragoncompliance_clear_site_events(): void {
+	wp_clear_scheduled_hook( 'dragoncompliance_daily_scan' );
 	wp_clear_scheduled_hook( 'dragoncompliance_change_scan' );
+}
+
+/**
+ * Deactivation: clear every scheduled scan, on every site of a network when
+ * deactivated network-wide (each site schedules its own on init).
+ *
+ * @param bool $network_wide Whether the plugin is deactivated for the network.
+ */
+function dragoncompliance_deactivate( $network_wide = false ): void {
+	Cron::stop();
+
+	if ( $network_wide && is_multisite() ) {
+		foreach ( get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) as $site_id ) {
+			switch_to_blog( (int) $site_id );
+			dragoncompliance_clear_site_events();
+			restore_current_blog();
+		}
+		return;
+	}
+	dragoncompliance_clear_site_events();
 }
 register_deactivation_hook( __FILE__, __NAMESPACE__ . '\dragoncompliance_deactivate' );
 

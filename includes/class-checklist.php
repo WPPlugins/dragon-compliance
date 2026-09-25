@@ -304,10 +304,7 @@ class Checklist {
 				'pass_detail' => __( 'Every active plugin has auto-updates enabled.', 'dragon-compliance' ),
 				'fail_detail' => __( 'Some active plugins do not auto-update.', 'dragon-compliance' ),
 				'check'       => static function (): bool {
-					$active       = (array) get_option( 'active_plugins', array() );
-					$auto         = (array) get_option( 'auto_update_plugins', array() );
-					$not_covered  = array_diff( $active, $auto );
-					return array() === $not_covered;
+					return array() === self::plugins_without_auto_updates();
 				},
 			),
 			'debug_off'           => array(
@@ -347,18 +344,7 @@ class Checklist {
 				'pass_detail' => __( 'A two-factor authentication plugin is active.', 'dragon-compliance' ),
 				'fail_detail' => __( 'No known two-factor authentication plugin detected.', 'dragon-compliance' ),
 				'check'       => static function (): bool {
-					if ( class_exists( '\DragonLoginSecurity\Plugin' ) ) {
-						return true;
-					}
-					$active = (array) get_option( 'active_plugins', array() );
-					foreach ( array( 'two-factor/', 'wp-2fa/', 'wordfence-login-security/', 'wordfence/', 'miniorange-2-factor-authentication/' ) as $known ) {
-						foreach ( $active as $file ) {
-							if ( 0 === strpos( (string) $file, $known ) ) {
-								return true;
-							}
-						}
-					}
-					return false;
+					return class_exists( '\DragonLoginSecurity\Plugin' ) || self::two_factor_plugin_active();
 				},
 			),
 			'no_open_criticals'   => array(
@@ -403,5 +389,47 @@ class Checklist {
 				'category'    => 'process',
 			),
 		);
+	}
+
+	/**
+	 * Plugin files active on this site, including network-active plugins on a
+	 * multisite network.
+	 *
+	 * @return string[]
+	 */
+	public static function active_plugin_files(): array {
+		$active = array_map( 'strval', (array) get_option( 'active_plugins', array() ) );
+		if ( is_multisite() ) {
+			$network = get_site_option( 'active_sitewide_plugins', array() );
+			$active  = array_merge( $active, array_map( 'strval', array_keys( is_array( $network ) ? $network : array() ) ) );
+		}
+		return array_values( array_unique( $active ) );
+	}
+
+	/**
+	 * Active plugins without auto-updates enabled. Core keeps the auto-update
+	 * list as a network option (a plain option on a single site).
+	 *
+	 * @return string[]
+	 */
+	public static function plugins_without_auto_updates(): array {
+		$auto = get_site_option( 'auto_update_plugins', array() );
+		return array_values( array_diff( self::active_plugin_files(), is_array( $auto ) ? $auto : array() ) );
+	}
+
+	/**
+	 * Whether a known two-factor plugin is active here or network-wide.
+	 *
+	 * @return bool
+	 */
+	public static function two_factor_plugin_active(): bool {
+		foreach ( array( 'two-factor/', 'wp-2fa/', 'wordfence-login-security/', 'wordfence/', 'miniorange-2-factor-authentication/' ) as $known ) {
+			foreach ( self::active_plugin_files() as $file ) {
+				if ( 0 === strpos( $file, $known ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

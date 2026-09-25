@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T04:19:16+00:00\n"
+"POT-Creation-Date: 2026-09-25T09:33:39+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-compliance\n"
@@ -526,115 +526,115 @@ msgstr ""
 msgid "Some active plugins do not auto-update."
 msgstr ""
 
-#: includes/class-checklist.php:314
+#: includes/class-checklist.php:311
 msgid "Debug mode disabled"
 msgstr ""
 
-#: includes/class-checklist.php:315
+#: includes/class-checklist.php:312
 msgid "WP_DEBUG leaks paths and internals in production."
 msgstr ""
 
-#: includes/class-checklist.php:317
+#: includes/class-checklist.php:314
 msgid "WP_DEBUG is off."
 msgstr ""
 
-#: includes/class-checklist.php:318
+#: includes/class-checklist.php:315
 msgid "WP_DEBUG is enabled."
 msgstr ""
 
-#: includes/class-checklist.php:324
+#: includes/class-checklist.php:321
 msgid "Dashboard file editing disabled"
 msgstr ""
 
-#: includes/class-checklist.php:325
+#: includes/class-checklist.php:322
 msgid "DISALLOW_FILE_EDIT stops an admin compromise becoming code execution."
 msgstr ""
 
-#: includes/class-checklist.php:327
+#: includes/class-checklist.php:324
 msgid "DISALLOW_FILE_EDIT is set."
 msgstr ""
 
-#: includes/class-checklist.php:328
+#: includes/class-checklist.php:325
 msgid "The plugin/theme file editor is available in wp-admin."
 msgstr ""
 
-#: includes/class-checklist.php:334
+#: includes/class-checklist.php:331
 msgid "No default \"admin\" account"
 msgstr ""
 
-#: includes/class-checklist.php:335
+#: includes/class-checklist.php:332
 msgid "The default admin login is the first username brute-force lists try."
 msgstr ""
 
-#: includes/class-checklist.php:337
+#: includes/class-checklist.php:334
 msgid "No user is named \"admin\"."
 msgstr ""
 
-#: includes/class-checklist.php:338
+#: includes/class-checklist.php:335
 msgid "A user with the login \"admin\" exists."
 msgstr ""
 
-#: includes/class-checklist.php:344
+#: includes/class-checklist.php:341
 msgid "Two-factor authentication available"
 msgstr ""
 
-#: includes/class-checklist.php:345
+#: includes/class-checklist.php:342
 msgid "Strong authentication is expected under CRA and NIS2."
 msgstr ""
 
-#: includes/class-checklist.php:347
+#: includes/class-checklist.php:344
 msgid "A two-factor authentication plugin is active."
 msgstr ""
 
-#: includes/class-checklist.php:348
+#: includes/class-checklist.php:345
 msgid "No known two-factor authentication plugin detected."
 msgstr ""
 
-#: includes/class-checklist.php:365
+#: includes/class-checklist.php:351
 msgid "No open critical vulnerabilities"
 msgstr ""
 
-#: includes/class-checklist.php:366
+#: includes/class-checklist.php:352
 msgid "Known-exploitable components must be patched or removed."
 msgstr ""
 
-#: includes/class-checklist.php:368
+#: includes/class-checklist.php:354
 msgid "No open critical findings."
 msgstr ""
 
-#: includes/class-checklist.php:369
+#: includes/class-checklist.php:355
 msgid "Critical findings are open - review the Findings tab."
 msgstr ""
 
-#: includes/class-checklist.php:386
+#: includes/class-checklist.php:372
 msgid "Documented update policy"
 msgstr ""
 
-#: includes/class-checklist.php:387
+#: includes/class-checklist.php:373
 msgid "A written policy stating how quickly security updates are applied."
 msgstr ""
 
-#: includes/class-checklist.php:391
+#: includes/class-checklist.php:377
 msgid "Published security contact"
 msgstr ""
 
-#: includes/class-checklist.php:392
+#: includes/class-checklist.php:378
 msgid "A route for reporting vulnerabilities in your site or product."
 msgstr ""
 
-#: includes/class-checklist.php:396
+#: includes/class-checklist.php:382
 msgid "Working backup and restore process"
 msgstr ""
 
-#: includes/class-checklist.php:397
+#: includes/class-checklist.php:383
 msgid "Backups exist, run on a schedule, and a restore has been tested."
 msgstr ""
 
-#: includes/class-checklist.php:401
+#: includes/class-checklist.php:387
 msgid "Changes tested before production"
 msgstr ""
 
-#: includes/class-checklist.php:402
+#: includes/class-checklist.php:388
 msgid "Updates and changes are verified on staging before going live."
 msgstr ""
 
@@ -642,20 +642,20 @@ msgstr ""
 msgid "No Wordfence Intelligence API token is configured."
 msgstr ""
 
-#: includes/class-feed.php:473
+#: includes/class-feed.php:476
 msgid "Could not create a temporary file for the vulnerability feed."
 msgstr ""
 
 #. translators: %d: HTTP status code.
-#: includes/class-feed.php:507
+#: includes/class-feed.php:510
 msgid "Vulnerability feed request failed with HTTP %d."
 msgstr ""
 
-#: includes/class-feed.php:518
+#: includes/class-feed.php:521
 msgid "Vulnerability feed response exceeded the size limit."
 msgstr ""
 
-#: includes/class-feed.php:525
+#: includes/class-feed.php:528
 msgid "Vulnerability feed response could not be parsed."
 msgstr ""
 

@@ -468,6 +468,9 @@ class Feed {
 		// the production feed decompresses to ~150 MB, and holding + decoding it
 		// whole would OOM typical shared hosting. stream_index() then walks that
 		// file one record at a time in a few MB of memory.
+		if ( ! function_exists( 'wp_tempnam' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
 		$tmp = wp_tempnam( 'dragoncompliance-feed' );
 		if ( ! $tmp ) {
 			return new \WP_Error( 'dragoncompliance_feed_tmp', __( 'Could not create a temporary file for the vulnerability feed.', 'dragon-compliance' ) );

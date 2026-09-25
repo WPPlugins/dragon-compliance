@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.11
+Stable tag: 1.0.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,6 +133,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.12 =
+Fixed: scheduled vulnerability scans now run. Please update.
+
 = 1.0.11 =
 Vulnerabilities that come back are reported again.
 
@@ -159,6 +162,12 @@ Listing and documentation improvements only. Safe to update.
 The WordPress.org listing icon is drawn with glyphs from Lucide (https://lucide.dev), ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (https://feathericons.com, MIT License). All other copyright (c) for Lucide are held by Lucide Contributors 2022. The plugin itself does not include these icons.
 
 == Changelog ==
+
+= 1.0.12 =
+* Fixed: the daily scan and the scan after a plugin change stopped with an error when run by WP-Cron, so only Scan now worked. Scheduled scans now run.
+* Fixed: a custom single-file plugin named like a WordPress.org plugin could be matched to that plugin's vulnerabilities. Only Hello Dolly is matched by file name.
+* Multisite: each site schedules its own scan, reads the network's auto-update settings and sees network-activated two-factor plugins.
+* Deactivating clears both scheduled scans, and uninstall runs per site.
 
 = 1.0.11 =
 * Fixed: a vulnerability that returns after it was resolved (for example after a plugin downgrade) is reopened and alerted again.

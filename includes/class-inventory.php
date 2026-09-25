@@ -165,26 +165,20 @@ class Inventory {
 	/**
 	 * Feed lookup names for a single-file plugin keyed by its file name.
 	 *
-	 * The feed names plugins by their WordPress.org slug: a known file maps
-	 * to its directory slug (hello.php is hello-dolly), and any other file is
-	 * also tried by its name without the extension.
+	 * The feed names plugins by their WordPress.org slug, and WordPress.org
+	 * plugins ship in folders, so only a known single file is mapped (hello.php
+	 * is hello-dolly). Any other single file is a custom plugin: matching it by
+	 * its bare name would report an unrelated WordPress.org plugin's flaws.
 	 *
 	 * @param string $slug Inventory slug.
-	 * @return string[] Extra lookup keys, empty for folder plugins.
+	 * @return string[] Extra lookup keys, empty for folder and custom plugins.
 	 */
 	public static function plugin_aliases( string $slug ): array {
-		if ( ! preg_match( '/^(.+)\.php$/i', $slug, $parts ) ) {
-			return array();
-		}
-		$known   = array(
+		$known = array(
 			'hello.php' => 'hello-dolly',
 		);
-		$aliases = array();
-		if ( isset( $known[ strtolower( $slug ) ] ) ) {
-			$aliases[] = $known[ strtolower( $slug ) ];
-		}
-		$aliases[] = $parts[1];
-		return array_values( array_unique( $aliases ) );
+		$key   = strtolower( $slug );
+		return isset( $known[ $key ] ) ? array( $known[ $key ] ) : array();
 	}
 
 	/**
