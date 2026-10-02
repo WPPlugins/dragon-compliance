@@ -38,7 +38,7 @@ final class Installer {
 	/**
 	 * CREATE TABLE statements keyed by unprefixed basename.
 	 *
-	 * Pure so the schema is unit-testable. Table basenames are frozen —
+	 * Pure so the schema is unit-testable. Table basenames are frozen:
 	 * renaming them is a data migration.
 	 *
 	 * @param string $prefix  Table prefix (e.g. `wp_`).
@@ -94,11 +94,10 @@ final class Installer {
 	public static function install(): bool {
 		global $wpdb;
 
-		if ( ! function_exists( 'dbDelta' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		}
-
 		foreach ( self::tables( $wpdb->prefix, $wpdb->get_charset_collate() ) as $sql ) {
+			if ( ! function_exists( 'dbDelta' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+			}
 			dbDelta( $sql );
 		}
 

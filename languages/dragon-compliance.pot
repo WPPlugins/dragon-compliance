@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Dragon Compliance 1.0.11\n"
+"Project-Id-Version: Dragon Compliance 1.0.13\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dragon-compliance\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T09:33:39+00:00\n"
+"POT-Creation-Date: 2026-10-02T16:06:27+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: dragon-compliance\n"
@@ -660,7 +660,7 @@ msgid "Vulnerability feed response could not be parsed."
 msgstr ""
 
 #. translators: %s: list of table names.
-#: includes/class-installer.php:162
+#: includes/class-installer.php:161
 msgid "Dragon Compliance could not create its database tables (%s). Check that the database user may CREATE TABLE; the plugin retries every 10 minutes."
 msgstr ""
 

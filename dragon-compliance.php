@@ -3,7 +3,7 @@
  * Plugin Name: Dragon Compliance
  * Plugin URI: https://dragoncore.ltd/plugins/dragon-compliance
  * Description: CRA & NIS2 compliance for WordPress - software inventory, CycloneDX SBOM export, known-vulnerability monitoring, readiness checklist and evidence log. All processing stays on your server.
- * Version: 1.0.12
+ * Version: 1.0.13
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Dragon Core
@@ -21,7 +21,7 @@ namespace DragonCompliance;
 defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
-define( 'DRAGONCOMPLIANCE_VERSION', '1.0.12' );
+define( 'DRAGONCOMPLIANCE_VERSION', '1.0.13' );
 define( 'DRAGONCOMPLIANCE_DB_VERSION', '2' );
 define( 'DRAGONCOMPLIANCE_PLUGIN_FILE', __FILE__ );
 define( 'DRAGONCOMPLIANCE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

@@ -415,14 +415,14 @@ class Admin {
 		}
 
 		$checklist = new Checklist( $this->findings, $this->evidence );
-		$attested  = isset( $_POST['dragoncompliance_attested'] ) ? (array) wp_unslash( $_POST['dragoncompliance_attested'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Items sanitized in attest().
-		$notes     = isset( $_POST['dragoncompliance_note'] ) ? (array) wp_unslash( $_POST['dragoncompliance_note'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Items sanitized in attest().
+		$attested  = isset( $_POST['dragoncompliance_attested'] ) ? (array) map_deep( wp_unslash( $_POST['dragoncompliance_attested'] ), 'sanitize_text_field' ) : array();
+		$notes     = isset( $_POST['dragoncompliance_note'] ) ? (array) map_deep( wp_unslash( $_POST['dragoncompliance_note'] ), 'sanitize_text_field' ) : array();
 
 		$items = array();
 		foreach ( array( 'update_policy', 'security_contact', 'backup_policy', 'staging_process' ) as $id ) {
 			$items[ $id ] = array(
 				'attested' => ! empty( $attested[ $id ] ),
-				'note'     => sanitize_text_field( (string) ( $notes[ $id ] ?? '' ) ),
+				'note'     => is_string( $notes[ $id ] ?? null ) ? $notes[ $id ] : '',
 			);
 		}
 

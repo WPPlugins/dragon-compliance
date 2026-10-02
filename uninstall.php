@@ -9,6 +9,24 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 /**
+ * Whether a stored "delete data on uninstall" value is a clear opt-in. Only
+ * true, 1 and the words true, yes and on (any case) count; anything else
+ * keeps the data.
+ *
+ * @param mixed $value Stored option value.
+ * @return bool
+ */
+function dragoncompliance_uninstall_opted_in( $value ): bool {
+	if ( true === $value || 1 === $value ) {
+		return true;
+	}
+	if ( ! is_string( $value ) ) {
+		return false;
+	}
+	return in_array( strtolower( trim( $value ) ), array( '1', 'true', 'yes', 'on' ), true );
+}
+
+/**
  * Remove this site's scheduled scans, and its tables and options when opted in.
  */
 function dragoncompliance_uninstall_site(): void {
@@ -20,7 +38,7 @@ function dragoncompliance_uninstall_site(): void {
 	// explicitly opted in (the "Delete all data on uninstall" setting). Without
 	// the opt-in, tables and options survive so a reinstall picks up exactly
 	// where it left off.
-	if ( ! get_option( 'dragoncompliance_delete_data_on_uninstall' ) ) {
+	if ( ! dragoncompliance_uninstall_opted_in( get_option( 'dragoncompliance_delete_data_on_uninstall' ) ) ) {
 		return;
 	}
 

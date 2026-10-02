@@ -192,18 +192,39 @@ class Inventory {
 	}
 
 	/**
+	 * Adds the License header to the headers get_plugins() reads.
+	 *
+	 * @param mixed $headers Extra header names.
+	 * @return array
+	 */
+	public static function add_license_header( $headers ): array {
+		$headers   = (array) $headers;
+		$headers[] = 'License';
+		return $headers;
+	}
+
+	/**
 	 * Live plugin list with the License header included.
+	 *
+	 * get_plugins() caches its result for the request, so the list is read
+	 * fresh with the License header (added last, so another plugin's filter
+	 * cannot drop it), and the cache is cleared again afterwards so later
+	 * readers in the request get the list core builds without it.
 	 *
 	 * @return array<string,array<string,string>>
 	 */
 	private function wp_plugins(): array {
+		add_filter( 'extra_plugin_headers', array( self::class, 'add_license_header' ), PHP_INT_MAX );
+		wp_cache_delete( 'plugins', 'plugins' );
 		if ( ! function_exists( 'get_plugins' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 		$plugins = get_plugins();
+		remove_filter( 'extra_plugin_headers', array( self::class, 'add_license_header' ), PHP_INT_MAX );
+		wp_cache_delete( 'plugins', 'plugins' );
+
 		foreach ( $plugins as $file => $data ) {
-			$headers                     = get_file_data( WP_PLUGIN_DIR . '/' . $file, array( 'License' => 'License' ) );
-			$plugins[ $file ]['License'] = $headers['License'] ?? '';
+			$plugins[ $file ]['License'] = (string) ( $data['License'] ?? '' );
 		}
 		return $plugins;
 	}

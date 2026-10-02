@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,6 +133,9 @@ publicly known vulnerabilities. It does not scan files for infections.
 
 == Upgrade Notice ==
 
+= 1.0.13 =
+Stricter handling of checklist input. No change to how scans or exports work.
+
 = 1.0.12 =
 Fixed: scheduled vulnerability scans now run. Please update.
 
@@ -162,6 +165,12 @@ Listing and documentation improvements only. Safe to update.
 The WordPress.org listing icon is drawn with glyphs from Lucide (https://lucide.dev), ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (https://feathericons.com, MIT License). All other copyright (c) for Lucide are held by Lucide Contributors 2022. The plugin itself does not include these icons.
 
 == Changelog ==
+
+= 1.0.13 =
+* Checklist notes and attestations are cleaned as they are read. A malformed submission saves an empty note instead of the word "Array".
+* The plugin inventory reads each plugin's licence through WordPress's own plugin list.
+* Another plugin that changes the list of plugin headers can no longer hide licences from the inventory or the SBOM.
+* Fixed: uninstall deletes data only when the opt-in is clearly on (1, true, yes or on), not for a value set to "false" or "no".
 
 = 1.0.12 =
 * Fixed: the daily scan and the scan after a plugin change stopped with an error when run by WP-Cron, so only Scan now worked. Scheduled scans now run.
