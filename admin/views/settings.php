@@ -7,6 +7,8 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$dragoncompliance_wordfence = 'wordfence' === $dragoncompliance_view['provider'];
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -15,17 +17,37 @@ defined( 'ABSPATH' ) || exit;
 
 	<table class="form-table" role="presentation">
 		<tr>
+			<th scope="row"><?php esc_html_e( 'Vulnerability data source', 'dragon-compliance' ); ?></th>
+			<td>
+				<fieldset>
+					<legend class="screen-reader-text"><?php esc_html_e( 'Vulnerability data source', 'dragon-compliance' ); ?></legend>
+					<p>
+						<label>
+							<input type="radio" name="dragoncompliance_feed_provider" value="wpvulnerability" <?php checked( ! $dragoncompliance_wordfence ); ?> />
+							<?php esc_html_e( 'WPVulnerability (no account needed)', 'dragon-compliance' ); ?>
+						</label>
+					</p>
+					<p class="description">
+						<?php esc_html_e( 'Each scan asks www.wpvulnerability.net about every installed plugin and theme by its slug, and about WordPress core by its version. Your site address is not sent. Answers are kept for 12 hours.', 'dragon-compliance' ); ?>
+					</p>
+					<p>
+						<label>
+							<input type="radio" name="dragoncompliance_feed_provider" value="wordfence" <?php checked( $dragoncompliance_wordfence ); ?> />
+							<?php esc_html_e( 'Wordfence Intelligence (needs your own free API token)', 'dragon-compliance' ); ?>
+						</label>
+					</p>
+					<p class="description">
+						<?php esc_html_e( 'Each scan downloads the whole Wordfence Intelligence Community Edition feed with your token and matches it on your server. Only the token is sent.', 'dragon-compliance' ); ?>
+					</p>
+				</fieldset>
+			</td>
+		</tr>
+		<tr>
 			<th scope="row"><?php esc_html_e( 'Wordfence Intelligence API token', 'dragon-compliance' ); ?></th>
 			<td>
-				<?php if ( $dragoncompliance_view['proxied'] ) : ?>
-					<p>
-						<span class="dragoncompliance-state dragoncompliance-state-pass">&#10003;</span>
-						<?php esc_html_e( 'The vulnerability feed is provided by your Dragon Compliance Pro licence - no Wordfence token is needed. A token entered here is kept as a fallback.', 'dragon-compliance' ); ?>
-					</p>
-				<?php endif; ?>
 				<?php if ( $dragoncompliance_view['has_token'] ) : ?>
 					<p>
-						<span class="dragoncompliance-state dragoncompliance-state-pass">&#10003;</span>
+						<span class="dragon-pill dragon-pill--ok"><?php esc_html_e( 'Saved', 'dragon-compliance' ); ?></span>
 						<?php esc_html_e( 'A token is configured (stored encrypted).', 'dragon-compliance' ); ?>
 					</p>
 					<label>
@@ -33,29 +55,41 @@ defined( 'ABSPATH' ) || exit;
 						<?php esc_html_e( 'Remove the stored token', 'dragon-compliance' ); ?>
 					</label>
 					<p class="description"><?php esc_html_e( 'Enter a new token below to replace the stored one.', 'dragon-compliance' ); ?></p>
+				<?php elseif ( $dragoncompliance_wordfence ) : ?>
+					<p>
+						<span class="dragon-pill dragon-pill--warning"><?php esc_html_e( 'Missing', 'dragon-compliance' ); ?></span>
+						<?php esc_html_e( 'Wordfence Intelligence is selected but no token is saved, so scans cannot fetch vulnerability data.', 'dragon-compliance' ); ?>
+					</p>
 				<?php endif; ?>
 				<input type="password" class="regular-text" name="dragoncompliance_api_token" value="" autocomplete="off" />
 				<p class="description">
-					<?php esc_html_e( 'Vulnerability data comes from the free Wordfence Intelligence Community Edition feed. Create a free wordfence.com account, then generate a token under Dashboard → Integrations.', 'dragon-compliance' ); ?>
+					<?php esc_html_e( 'Only needed for the Wordfence source. Create a free wordfence.com account, then generate a token under Dashboard → Integrations.', 'dragon-compliance' ); ?>
 				</p>
 			</td>
 		</tr>
 		<tr>
-			<th scope="row"><?php esc_html_e( 'Critical alerts', 'dragon-compliance' ); ?></th>
+			<th scope="row"><?php esc_html_e( 'Vulnerability alerts', 'dragon-compliance' ); ?></th>
 			<td>
 				<label>
 					<input type="checkbox" name="dragoncompliance_alert_enabled" value="1" <?php checked( $dragoncompliance_view['alert_enabled'] ); ?> />
-					<?php esc_html_e( 'Email the site admin when a new critical vulnerability is detected', 'dragon-compliance' ); ?>
+					<?php esc_html_e( 'Send an email when a new critical vulnerability, or one whose severity has not been published, is detected', 'dragon-compliance' ); ?>
 				</label>
-				<?php if ( 'routed' === $dragoncompliance_view['pro_alerts'] ) : ?>
-					<p class="description">
-						<?php esc_html_e( 'With a Dragon Compliance Pro licence active, alerts are routed by Pro to its alert recipients instead. When none are set, this setting decides whether the site admin gets them.', 'dragon-compliance' ); ?>
-					</p>
-				<?php elseif ( 'update' === $dragoncompliance_view['pro_alerts'] ) : ?>
-					<p class="description">
-						<?php esc_html_e( 'Update Dragon Compliance Pro to the latest version so this setting is respected while a Pro licence is active.', 'dragon-compliance' ); ?>
-					</p>
-				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="dragoncompliance-alert-recipients"><?php esc_html_e( 'Alert recipients', 'dragon-compliance' ); ?></label></th>
+			<td>
+				<textarea name="dragoncompliance_alert_recipients" id="dragoncompliance-alert-recipients" class="large-text code" rows="3" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $dragoncompliance_view['admin_email'] ); ?>"><?php echo esc_textarea( $dragoncompliance_view['recipients'] ); ?></textarea>
+				<p class="description">
+					<?php
+					printf(
+						/* translators: 1: the site admin email address, 2: the largest number of addresses accepted. */
+						esc_html__( 'Email addresses, one per line or separated by commas. Leave empty to send alerts to the site admin (%1$s). Up to %2$s addresses; each gets its own email.', 'dragon-compliance' ),
+						esc_html( $dragoncompliance_view['admin_email'] ),
+						esc_html( number_format_i18n( \DragonCompliance\Alerts::MAX_RECIPIENTS ) )
+					);
+					?>
+				</p>
 			</td>
 		</tr>
 		<tr>

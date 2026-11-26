@@ -44,12 +44,15 @@ $dragoncompliance_env = $dragoncompliance_view['environment'];
 			<th scope="col"><?php esc_html_e( 'Author', 'dragon-compliance' ); ?></th>
 			<th scope="col"><?php esc_html_e( 'License', 'dragon-compliance' ); ?></th>
 			<th scope="col"><?php esc_html_e( 'Active', 'dragon-compliance' ); ?></th>
+			<?php if ( array() !== $dragoncompliance_view['checks'] ) : ?>
+				<th scope="col"><?php esc_html_e( 'Vulnerability check', 'dragon-compliance' ); ?></th>
+			<?php endif; ?>
 		</tr>
 	</thead>
 	<tbody>
 		<?php if ( empty( $dragoncompliance_view['components'] ) ) : ?>
 			<tr>
-				<td colspan="7">
+				<td colspan="<?php echo esc_attr( array() !== $dragoncompliance_view['checks'] ? '8' : '7' ); ?>">
 					<?php esc_html_e( 'No inventory yet - run your first scan from the Dashboard tab to record what this site is running.', 'dragon-compliance' ); ?>
 				</td>
 			</tr>
@@ -63,6 +66,22 @@ $dragoncompliance_env = $dragoncompliance_view['environment'];
 				<td><?php echo esc_html( wp_strip_all_tags( (string) $dragoncompliance_component['author'] ) ); ?></td>
 				<td><?php echo esc_html( (string) $dragoncompliance_component['license'] ); ?></td>
 				<td><?php echo $dragoncompliance_component['active'] ? esc_html__( 'Yes', 'dragon-compliance' ) : esc_html__( 'No', 'dragon-compliance' ); ?></td>
+				<?php if ( array() !== $dragoncompliance_view['checks'] ) : ?>
+					<?php $dragoncompliance_check = (string) ( $dragoncompliance_view['checks'][ $dragoncompliance_component['type'] . '|' . $dragoncompliance_component['slug'] ] ?? '' ); ?>
+					<td>
+						<?php if ( 'checked' === $dragoncompliance_check ) : ?>
+							<span class="dragon-pill dragon-pill--ok"><?php esc_html_e( 'Checked', 'dragon-compliance' ); ?></span>
+						<?php elseif ( 'not_listed' === $dragoncompliance_check ) : ?>
+							<span class="dragon-pill dragon-pill--ok"><?php esc_html_e( 'Checked - not in the database', 'dragon-compliance' ); ?></span>
+						<?php elseif ( 'not_checked' === $dragoncompliance_check ) : ?>
+							<span class="dragon-pill dragon-pill--warning"><?php esc_html_e( 'Not checked', 'dragon-compliance' ); ?></span>
+						<?php elseif ( 'pending' === $dragoncompliance_check ) : ?>
+							<span class="dragon-pill dragon-pill--muted"><?php esc_html_e( 'Not checked yet', 'dragon-compliance' ); ?></span>
+						<?php else : ?>
+							<span class="dragon-pill dragon-pill--muted"><?php esc_html_e( 'No scan yet', 'dragon-compliance' ); ?></span>
+						<?php endif; ?>
+					</td>
+				<?php endif; ?>
 			</tr>
 		<?php endforeach; ?>
 	</tbody>

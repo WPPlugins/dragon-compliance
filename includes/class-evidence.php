@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Writes and reads the evidence table. Rows are never updated by the free
- * plugin; the Pro sealer fills the hash-chain columns afterwards.
+ * plugin; an add-on can fill the hash-chain columns afterwards.
  */
 class Evidence {
 

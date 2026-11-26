@@ -64,7 +64,7 @@ class Findings_Store {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i ORDER BY FIELD(status,'open','ignored','resolved'), FIELD(severity,'critical','high','medium','low','unknown'), cvss DESC, detected_at DESC LIMIT %d OFFSET %d",
+					"SELECT * FROM %i ORDER BY FIELD(status,'open','ignored','resolved','source_changed'), FIELD(severity,'critical','high','medium','low','unknown'), cvss DESC, detected_at DESC LIMIT %d OFFSET %d",
 					$this->table(),
 					$limit,
 					$offset
@@ -88,9 +88,10 @@ class Findings_Store {
 			ARRAY_A
 		);
 		$counts = array(
-			'open'     => 0,
-			'resolved' => 0,
-			'ignored'  => 0,
+			'open'           => 0,
+			'resolved'       => 0,
+			'ignored'        => 0,
+			'source_changed' => 0,
 		);
 		foreach ( (array) $rows as $row ) {
 			$counts[ (string) $row['status'] ] = (int) $row['n'];
@@ -123,11 +124,12 @@ class Findings_Store {
 	 * The table holds one row per (vuln_id, component_slug), so a plain insert
 	 * of a vulnerability seen before hits the unique key and is lost. A
 	 * resolved row is reopened instead (the vulnerability came back, e.g. a
-	 * downgrade or a reinstall), an ignored row stays ignored, and only a
+	 * downgrade or a reinstall), a row closed by a source change is restored
+	 * (its source is in use again), an ignored row stays ignored, and only a
 	 * never-seen pair is inserted.
 	 *
 	 * @param array $record Matched record (Matcher::matches shape).
-	 * @return array{id:int,action:string} action is inserted, reopened, ignored, open or failed; id is 0 unless inserted or reopened.
+	 * @return array{id:int,action:string} action is inserted, reopened, restored, ignored, open or failed; id is 0 unless inserted, reopened or restored.
 	 */
 	public function upsert( array $record ): array {
 		global $wpdb;
@@ -149,7 +151,7 @@ class Findings_Store {
 		}
 
 		$status = (string) ( $existing['status'] ?? '' );
-		if ( 'resolved' !== $status ) {
+		if ( ! in_array( $status, array( 'resolved', 'source_changed' ), true ) ) {
 			return array(
 				'id'     => 0,
 				'action' => 'ignored' === $status ? 'ignored' : 'open',
@@ -160,7 +162,7 @@ class Findings_Store {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$changed = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET status = 'open', resolved_at = NULL, component_version = %s, cve = %s, title = %s, severity = %s, cvss = %f, affected_range = %s, detected_at = %s WHERE id = %d AND status = 'resolved'",
+				"UPDATE %i SET status = 'open', resolved_at = NULL, component_version = %s, cve = %s, title = %s, severity = %s, cvss = %f, affected_range = %s, detected_at = %s WHERE id = %d AND status = %s",
 				$this->table(),
 				sanitize_text_field( (string) ( $record['installed_version'] ?? '' ) ),
 				sanitize_text_field( (string) ( $record['cve'] ?? '' ) ),
@@ -169,14 +171,15 @@ class Findings_Store {
 				(float) ( $record['cvss'] ?? 0 ),
 				sanitize_text_field( self::range_label( (array) ( $record['affected'] ?? array() ) ) ),
 				current_time( 'mysql', true ),
-				$id
+				$id,
+				$status
 			)
 		);
 
 		return 0 < (int) $changed
 			? array(
 				'id'     => $id,
-				'action' => 'reopened',
+				'action' => 'resolved' === $status ? 'reopened' : 'restored',
 			)
 			: array(
 				'id'     => 0,
@@ -286,6 +289,62 @@ class Findings_Store {
 	}
 
 	/**
+	 * Open and ignored findings detected before a time: the ones a source
+	 * change made then applies to.
+	 *
+	 * @param string $before UTC datetime (Y-m-d H:i:s).
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function detected_before( string $before ): array {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM %i WHERE status IN ('open', 'ignored') AND detected_at < %s", $this->table(), $before ),
+			ARRAY_A
+		);
+		return array_map( array( $this, 'cast' ), (array) $rows );
+	}
+
+	/**
+	 * Close open and ignored findings because the data source changed. They
+	 * are not fixed, so they never become "resolved".
+	 *
+	 * @param array $ids Finding ids.
+	 * @return int[] The ids this call actually closed.
+	 */
+	public function close_source_changed( array $ids ): array {
+		global $wpdb;
+		$ids = array_filter( array_map( 'absint', $ids ) );
+		if ( array() === $ids ) {
+			return array();
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$closed_at    = current_time( 'mysql', true );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder list is built from counted %d entries; values are absint()ed.
+		$changed = (int) $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET status = 'source_changed', resolved_at = %s WHERE id IN ({$placeholders}) AND status IN ('open', 'ignored')",
+				array_merge( array( $this->table(), $closed_at ), $ids )
+			)
+		);
+		if ( $changed < 1 ) {
+			return array();
+		}
+
+		// As in resolve(): the row count does not say which ids changed.
+		$closed = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE id IN ({$placeholders}) AND status = 'source_changed' AND resolved_at = %s",
+				array_merge( array( $this->table() ), $ids, array( $closed_at ) )
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return array_values( array_map( 'absint', (array) $closed ) );
+	}
+
+	/**
 	 * Toggle ignored status.
 	 *
 	 * @param int  $id      Finding id.
@@ -307,7 +366,7 @@ class Findings_Store {
 	}
 
 	/**
-	 * Resolved findings (for Pro time-to-patch).
+	 * Resolved findings.
 	 *
 	 * @return array<int,array<string,mixed>>
 	 */

@@ -38,9 +38,10 @@ final class Labels {
 	 */
 	public static function finding_status( string $code ): string {
 		$labels = array(
-			'open'     => __( 'Open', 'dragon-compliance' ),
-			'ignored'  => __( 'Ignored', 'dragon-compliance' ),
-			'resolved' => __( 'Resolved', 'dragon-compliance' ),
+			'open'           => __( 'Open', 'dragon-compliance' ),
+			'ignored'        => __( 'Ignored', 'dragon-compliance' ),
+			'resolved'       => __( 'Resolved', 'dragon-compliance' ),
+			'source_changed' => __( 'Closed: data source changed', 'dragon-compliance' ),
 		);
 		return $labels[ $code ] ?? $code;
 	}
@@ -75,6 +76,23 @@ final class Labels {
 			'attestation_changed'     => __( 'Attestation changed', 'dragon-compliance' ),
 			'feed_fetch_failed'       => __( 'Vulnerability feed fetch failed', 'dragon-compliance' ),
 			'report_send_failed'      => __( 'Scheduled report not delivered', 'dragon-compliance' ),
+			'vuln_check_incomplete'   => __( 'Some components could not be checked', 'dragon-compliance' ),
+			'alert_not_delivered'     => __( 'Alert email not accepted for delivery', 'dragon-compliance' ),
+			'feed_source_changed'     => __( 'Vulnerability data source changed', 'dragon-compliance' ),
+			'finding_source_changed'  => __( 'Finding closed: vulnerability data source changed', 'dragon-compliance' ),
+		);
+		return $labels[ $code ] ?? $code;
+	}
+
+	/**
+	 * Vulnerability data source label.
+	 *
+	 * @param string $code Source code.
+	 */
+	public static function feed_provider( string $code ): string {
+		$labels = array(
+			'wpvulnerability' => __( 'WPVulnerability', 'dragon-compliance' ),
+			'wordfence'       => __( 'Wordfence Intelligence', 'dragon-compliance' ),
 		);
 		return $labels[ $code ] ?? $code;
 	}

@@ -11,12 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 <?php if ( ! $dragoncompliance_view['feed']['has_token'] ) : ?>
 	<div class="notice notice-warning inline">
-		<p><?php esc_html_e( 'Add your free Wordfence Intelligence API token under Settings to activate vulnerability monitoring.', 'dragon-compliance' ); ?></p>
+		<p><?php esc_html_e( 'Wordfence Intelligence is selected under Settings but no API token is saved, so nothing is being checked. Add a token, or switch to WPVulnerability, which needs no account.', 'dragon-compliance' ); ?></p>
 	</div>
 <?php elseif ( $dragoncompliance_view['feed']['no_data'] ) : ?>
 	<div class="notice notice-warning inline">
 		<p>
-			<?php esc_html_e( 'No vulnerability data has been downloaded yet, so these results are not complete. Run a scan to fetch the feed.', 'dragon-compliance' ); ?>
+			<?php esc_html_e( 'No vulnerability data has been fetched yet, so these results are not complete. Run a scan from the Dashboard tab.', 'dragon-compliance' ); ?>
 			<?php if ( $dragoncompliance_view['feed']['error'] ) : ?>
 				<?php
 				printf(
@@ -30,8 +30,17 @@ defined( 'ABSPATH' ) || exit;
 	</div>
 <?php endif; ?>
 
+<?php
+$dragoncompliance_feed = $dragoncompliance_view['feed'];
+require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/partial-unchecked.php';
+?>
+
 <?php if ( array() === $dragoncompliance_view['findings'] ) : ?>
-	<p><?php esc_html_e( 'No findings recorded. That is a good thing - keep the daily scan running.', 'dragon-compliance' ); ?></p>
+	<?php if ( array() === $dragoncompliance_feed['unchecked'] && ! $dragoncompliance_feed['no_data'] && $dragoncompliance_feed['has_token'] ) : ?>
+		<p><?php esc_html_e( 'No findings recorded. That is a good thing - keep the daily scan running.', 'dragon-compliance' ); ?></p>
+	<?php else : ?>
+		<p><?php esc_html_e( 'No findings recorded for the components that were checked.', 'dragon-compliance' ); ?></p>
+	<?php endif; ?>
 <?php else : ?>
 	<table class="widefat striped">
 		<thead>
@@ -100,14 +109,25 @@ defined( 'ABSPATH' ) || exit;
 <?php endif; ?>
 
 <p class="description dragoncompliance-attribution">
-	<?php
-	printf(
-		/* translators: 1: opening link tag to the Wordfence Intelligence license, 2: closing link tag, 3: opening link tag to the MITRE CVE terms, 4: closing link tag. */
-		esc_html__( 'Vulnerability data © Defiant Inc., provided via Wordfence Intelligence and used under its %1$sCommunity Edition license%2$s. CVE records © The MITRE Corporation, used under the %3$sCVE Terms of Use%4$s.', 'dragon-compliance' ),
-		'<a href="https://www.wordfence.com/wti-community-edition-terms-and-conditions/" target="_blank" rel="noopener noreferrer">',
-		'</a>',
-		'<a href="https://www.cve.org/Legal/TermsOfUse" target="_blank" rel="noopener noreferrer">',
-		'</a>'
-	);
-	?>
+	<?php if ( 'wordfence' !== $dragoncompliance_feed['provider'] ) : ?>
+		<?php
+		printf(
+			/* translators: 1: opening link tag to WPVulnerability, 2: closing link tag. */
+			esc_html__( 'Vulnerability data from %1$sWPVulnerability%2$s.', 'dragon-compliance' ),
+			'<a href="https://www.wpvulnerability.com/" target="_blank" rel="noopener noreferrer">',
+			'</a>'
+		);
+		?>
+	<?php else : ?>
+		<?php
+		printf(
+			/* translators: 1: opening link tag to the Wordfence Intelligence license, 2: closing link tag, 3: opening link tag to the MITRE CVE terms, 4: closing link tag. */
+			esc_html__( 'Vulnerability data © Defiant Inc., provided via Wordfence Intelligence and used under its %1$sCommunity Edition license%2$s. CVE records © The MITRE Corporation, used under the %3$sCVE Terms of Use%4$s.', 'dragon-compliance' ),
+			'<a href="https://www.wordfence.com/wti-community-edition-terms-and-conditions/" target="_blank" rel="noopener noreferrer">',
+			'</a>',
+			'<a href="https://www.cve.org/Legal/TermsOfUse" target="_blank" rel="noopener noreferrer">',
+			'</a>'
+		);
+		?>
+	<?php endif; ?>
 </p>

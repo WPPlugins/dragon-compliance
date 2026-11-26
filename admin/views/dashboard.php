@@ -17,13 +17,13 @@ $dragoncompliance_feed   = $dragoncompliance_view['feed'];
 <?php if ( ! $dragoncompliance_feed['has_token'] ) : ?>
 	<div class="notice notice-warning">
 		<p>
-			<?php esc_html_e( 'Vulnerability monitoring is not active yet: add your free Wordfence Intelligence API token under Settings.', 'dragon-compliance' ); ?>
+			<?php esc_html_e( 'Vulnerability monitoring is not active: Wordfence Intelligence is selected under Settings but no API token is saved. Add a token, or switch to WPVulnerability, which needs no account.', 'dragon-compliance' ); ?>
 		</p>
 	</div>
 <?php elseif ( $dragoncompliance_feed['no_data'] ) : ?>
 	<div class="notice notice-warning">
 		<p>
-			<?php esc_html_e( 'Vulnerability monitoring is configured but no vulnerability data has been downloaded yet, so nothing has been checked. The feed is fetched by the daily scan - or press "Scan now".', 'dragon-compliance' ); ?>
+			<?php esc_html_e( 'No vulnerability data has been fetched yet, so nothing has been checked. The daily scan fetches it, or press "Scan now".', 'dragon-compliance' ); ?>
 			<?php if ( $dragoncompliance_feed['error'] ) : ?>
 				<br />
 				<?php
@@ -57,6 +57,8 @@ $dragoncompliance_feed   = $dragoncompliance_view['feed'];
 		</p>
 	</div>
 <?php endif; ?>
+
+<?php require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/partial-unchecked.php'; ?>
 
 <div class="dragoncompliance-cards">
 	<div class="dragoncompliance-card">
@@ -115,6 +117,15 @@ $dragoncompliance_feed   = $dragoncompliance_view['feed'];
 			<?php else : ?>
 				<?php esc_html_e( 'No scan has run yet.', 'dragon-compliance' ); ?>
 			<?php endif; ?>
+		</p>
+		<p>
+			<?php
+			printf(
+				/* translators: %s: name of the vulnerability data source. */
+				esc_html__( 'Vulnerability data source: %s.', 'dragon-compliance' ),
+				esc_html( \DragonCompliance\Labels::feed_provider( (string) $dragoncompliance_feed['provider'] ) )
+			);
+			?>
 		</p>
 		<p>
 			<?php if ( null !== $dragoncompliance_feed['age'] ) : ?>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Wordfence Intelligence vulnerability feed: fetch, index, cache.
+ * Vulnerability data: the chosen source, and the Wordfence Intelligence feed.
  *
  * @package DragonCompliance
  */
@@ -10,11 +10,39 @@ namespace DragonCompliance;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Fetches the production vulnerability feed and keeps a compact local index
- * of only the records that concern installed software. The full feed is
- * never persisted.
+ * Front for the vulnerability data the scanner reads. WPVulnerability (no
+ * account needed) is the default source; a site that stores its own Wordfence
+ * Intelligence token can use the Wordfence feed instead. For Wordfence this
+ * class fetches the production feed and keeps a compact local index of only
+ * the records that concern installed software; the full feed is never
+ * persisted.
  */
 class Feed {
+
+	/**
+	 * Option naming the chosen source.
+	 */
+	public const PROVIDER_OPTION = 'dragoncompliance_feed_provider';
+
+	/**
+	 * Source codes.
+	 */
+	public const PROVIDER_WPVULNERABILITY = 'wpvulnerability';
+	public const PROVIDER_WORDFENCE       = 'wordfence';
+
+	/**
+	 * Option holding a source change the scanner has not finished applying:
+	 * ['from', 'to', 'at' (UTC datetime), 'reason' (settings or upgrade),
+	 * 'logged' (whether its evidence row exists)].
+	 */
+	public const SOURCE_CHANGE_OPTION = 'dragoncompliance_source_change';
+
+	/**
+	 * WPVulnerability client, created on first use.
+	 *
+	 * @var Wpvulnerability|null
+	 */
+	private ?Wpvulnerability $wpvulnerability = null;
 
 	/**
 	 * Feed endpoint. Hard-coded on purpose: this URL must never be
@@ -23,17 +51,16 @@ class Feed {
 	public const URL = 'https://www.wordfence.com/api/intelligence/v3/vulnerabilities/production';
 
 	/**
-	 * The only hosts the feed may ever be fetched from.
+	 * The only hosts the Wordfence feed may ever be fetched from.
 	 *
-	 * Pro can redirect the fetch to the Dragon Core proxy through the
-	 * dragoncompliance_feed_source filter, but the free plugin decides the
-	 * allowlist, so a filter — even a malicious one — can never point the fetch
-	 * (and the licence key it carries) at an attacker-chosen host. Anything not
-	 * on this list, or not HTTPS, falls back to the trusted default.
+	 * The dragoncompliance_feed_source filter can change the request, but this
+	 * allowlist decides the host, so a filter can never point the fetch (and
+	 * any credentials it carries) at another host. Anything not on this list,
+	 * or not HTTPS, falls back to the trusted default.
 	 *
 	 * @var array<string>
 	 */
-	private const ALLOWED_HOSTS = array( 'www.wordfence.com', 'api.dragoncore.ltd' );
+	private const ALLOWED_HOSTS = array( 'www.wordfence.com' );
 
 	/**
 	 * Refuse to keep a downloaded feed file larger than this. It is a sanity
@@ -55,9 +82,8 @@ class Feed {
 	 *
 	 * Defaults to the free plugin's own path: the Wordfence endpoint with the
 	 * customer's token (or no auth when no token is set). The
-	 * dragoncompliance_feed_source filter lets Pro swap in the Dragon Core proxy;
-	 * the result is validated by allow_source() so the free plugin never fetches
-	 * an untrusted host.
+	 * dragoncompliance_feed_source filter can adjust the request; the result is
+	 * validated by allow_source() so the plugin never fetches an untrusted host.
 	 *
 	 * @return array{url:string,headers:array<string,string>,configured:bool}
 	 */
@@ -72,14 +98,12 @@ class Feed {
 		/**
 		 * Filter the vulnerability-feed source.
 		 *
-		 * Return an array of {url, headers, configured}. The url's host must be
-		 * one of the free plugin's two known hosts over HTTPS, or the filtered
-		 * value is discarded and the default Wordfence source is used. This is
-		 * how Dragon Compliance Pro points monitoring at the Dragon Core proxy
-		 * without the free plugin ever accepting an arbitrary URL. The default
-		 * carries no credentials: the customer's Wordfence token is attached
-		 * after filtering, only to a Wordfence-bound source, so it is never
-		 * handed to filter callbacks.
+		 * Return an array of {url, headers, configured}. The url must be HTTPS on
+		 * www.wordfence.com, or the filtered value is discarded and the default
+		 * source is used, so the plugin never accepts an arbitrary URL. The
+		 * default carries no credentials: the customer's Wordfence token is
+		 * attached after filtering, so it is never handed to filter callbacks.
+		 * Applies only while Wordfence Intelligence is the chosen source.
 		 *
 		 * @since 1.0.6
 		 *
@@ -370,12 +394,19 @@ class Feed {
 	 * A failure never touches the index or the ETag — the last-good data keeps
 	 * serving — but it is written into the feed meta so the admin screens can
 	 * say why monitoring has no fresh data, and announced on
-	 * dragoncompliance_feed_failed so an alternative source (Pro) can react.
+	 * dragoncompliance_feed_failed.
+	 *
+	 * With WPVulnerability as the source, each installed component is looked up
+	 * instead (see Wpvulnerability::refresh()), which records its own outcome.
 	 *
 	 * @param array $slug_map Installed software map (see index_records).
 	 * @return array|\WP_Error Summary array on success (or unchanged 304).
 	 */
 	public function refresh( array $slug_map ) {
+		if ( ! $this->uses_wordfence() ) {
+			return $this->wpvulnerability()->refresh( $slug_map );
+		}
+
 		$result = $this->do_refresh( $slug_map );
 		$meta   = get_option( 'dragoncompliance_feed_meta', array() );
 		$meta   = is_array( $meta ) ? $meta : array();
@@ -411,7 +442,7 @@ class Feed {
 	 * @return array{code:string,message:string,at:int}|null
 	 */
 	public function last_error(): ?array {
-		$meta = get_option( 'dragoncompliance_feed_meta', array() );
+		$meta = $this->uses_wordfence() ? get_option( 'dragoncompliance_feed_meta', array() ) : Wpvulnerability::meta();
 		if ( ! is_array( $meta ) || empty( $meta['last_error'] ) || ! is_array( $meta['last_error'] ) ) {
 			return null;
 		}
@@ -430,11 +461,165 @@ class Feed {
 	}
 
 	/**
-	 * Whether the feed is currently sourced from somewhere other than Wordfence
-	 * (i.e. Pro has pointed it at the Dragon Core proxy).
+	 * The chosen source.
+	 *
+	 * A site that has never chosen keeps Wordfence when it already stores a
+	 * token, and gets WPVulnerability otherwise. The answer is stored, so a
+	 * token entered later does not switch the source by itself.
+	 *
+	 * @return string PROVIDER_WPVULNERABILITY or PROVIDER_WORDFENCE.
 	 */
-	public function is_proxied(): bool {
-		return 'www.wordfence.com' !== wp_parse_url( (string) $this->source()['url'], PHP_URL_HOST );
+	public function provider(): string {
+		$stored = get_option( self::PROVIDER_OPTION, '' );
+		if ( in_array( $stored, array( self::PROVIDER_WPVULNERABILITY, self::PROVIDER_WORDFENCE ), true ) ) {
+			return $stored;
+		}
+
+		// The raw option, not api_token(): decrypting can delete an unreadable token.
+		$token  = get_option( 'dragoncompliance_api_token', '' );
+		$chosen = is_string( $token ) && '' !== $token ? self::PROVIDER_WORDFENCE : self::PROVIDER_WPVULNERABILITY;
+		if ( add_option( self::PROVIDER_OPTION, $chosen ) && self::PROVIDER_WORDFENCE !== $chosen && self::had_wordfence_data() ) {
+			// Earlier versions read only the Wordfence feed; this site's findings came from it.
+			self::note_source_change( self::PROVIDER_WORDFENCE, $chosen, 'upgrade' );
+		}
+		return $chosen;
+	}
+
+	/**
+	 * Whether this site fetched the Wordfence feed before a source was chosen.
+	 */
+	private static function had_wordfence_data(): bool {
+		$meta  = get_option( 'dragoncompliance_feed_meta', array() );
+		$index = get_option( 'dragoncompliance_feed_index', array() );
+		return ( is_array( $meta ) && ! empty( $meta['fetched_at'] ) ) || ( is_array( $index ) && array() !== $index );
+	}
+
+	/**
+	 * Remember a source change for the next scan with data to apply.
+	 *
+	 * A change made while another is pending keeps the original source and
+	 * time, and a change back to that source cancels it.
+	 *
+	 * @param string $from   Source before the change.
+	 * @param string $to     Source after it.
+	 * @param string $reason settings or upgrade.
+	 */
+	public static function note_source_change( string $from, string $to, string $reason = 'settings' ): void {
+		$pending = self::pending_source_change();
+		if ( null !== $pending ) {
+			$from = $pending['from'];
+		}
+		if ( $from === $to ) {
+			delete_option( self::SOURCE_CHANGE_OPTION );
+			return;
+		}
+		update_option(
+			self::SOURCE_CHANGE_OPTION,
+			array(
+				'from'   => $from,
+				'to'     => $to,
+				'at'     => null !== $pending ? $pending['at'] : gmdate( 'Y-m-d H:i:s' ),
+				'reason' => null !== $pending ? $pending['reason'] : $reason,
+				'logged' => null !== $pending ? $pending['logged'] : 'upgrade' !== $reason,
+			),
+			false
+		);
+	}
+
+	/**
+	 * The pending source change, or null.
+	 *
+	 * @return array{from:string,to:string,at:string,reason:string,logged:bool}|null
+	 */
+	public static function pending_source_change(): ?array {
+		$stored = get_option( self::SOURCE_CHANGE_OPTION, array() );
+		if ( ! is_array( $stored ) || ! is_string( $stored['from'] ?? null ) || ! is_string( $stored['to'] ?? null ) || ! is_string( $stored['at'] ?? null ) ) {
+			return null;
+		}
+		return array(
+			'from'   => $stored['from'],
+			'to'     => $stored['to'],
+			'at'     => $stored['at'],
+			'reason' => 'upgrade' === ( $stored['reason'] ?? '' ) ? 'upgrade' : 'settings',
+			'logged' => ! empty( $stored['logged'] ),
+		);
+	}
+
+	/**
+	 * Mark the pending change's evidence row as written.
+	 */
+	public static function source_change_logged(): void {
+		$stored = get_option( self::SOURCE_CHANGE_OPTION, array() );
+		if ( is_array( $stored ) && array() !== $stored ) {
+			$stored['logged'] = true;
+			update_option( self::SOURCE_CHANGE_OPTION, $stored, false );
+		}
+	}
+
+	/**
+	 * Forget the pending source change once it is applied.
+	 */
+	public static function clear_source_change(): void {
+		delete_option( self::SOURCE_CHANGE_OPTION );
+	}
+
+	/**
+	 * Whether the Wordfence feed is the source in use.
+	 */
+	public function uses_wordfence(): bool {
+		return self::PROVIDER_WORDFENCE === $this->provider();
+	}
+
+	/**
+	 * Whether monitoring can fetch data: always with WPVulnerability, and with
+	 * Wordfence once a token (or a filtered source) is configured.
+	 */
+	public function monitoring_ready(): bool {
+		return ! $this->uses_wordfence() || $this->has_token();
+	}
+
+	/**
+	 * The WPVulnerability client.
+	 */
+	protected function wpvulnerability(): Wpvulnerability {
+		if ( null === $this->wpvulnerability ) {
+			$this->wpvulnerability = new Wpvulnerability();
+		}
+		return $this->wpvulnerability;
+	}
+
+	/**
+	 * Use a given WPVulnerability client (tests).
+	 *
+	 * @param Wpvulnerability $client Client.
+	 */
+	public function set_wpvulnerability( Wpvulnerability $client ): void {
+		$this->wpvulnerability = $client;
+	}
+
+	/**
+	 * Components the last refresh could not check, "type|slug" => reason.
+	 * Always empty for the Wordfence feed, which covers everything or nothing.
+	 *
+	 * @return array<string,string>
+	 */
+	public function unchecked(): array {
+		return $this->uses_wordfence() ? array() : Wpvulnerability::unchecked();
+	}
+
+	/**
+	 * Whether the scan has vulnerability data to compare against, so that a
+	 * finding missing from the matches may be resolved.
+	 *
+	 * The Wordfence index is only trusted when non-empty. A WPVulnerability
+	 * index can be empty on a site with no known vulnerabilities, so it counts
+	 * once at least one lookup has ever succeeded.
+	 */
+	public function has_data(): bool {
+		if ( array() !== $this->index() ) {
+			return true;
+		}
+		return ! $this->uses_wordfence() && ! empty( Wpvulnerability::meta()['fetched_at'] );
 	}
 
 	/**
@@ -480,6 +665,8 @@ class Feed {
 			(string) $source['url'],
 			array(
 				'timeout'     => 120,
+				// Core's default user agent carries the site address.
+				'user-agent'  => 'DragonCompliance/' . DRAGONCOMPLIANCE_VERSION,
 				'headers'     => $headers,
 				'stream'      => true,
 				'filename'    => $tmp,
@@ -554,6 +741,9 @@ class Feed {
 	 * @return array
 	 */
 	public function index(): array {
+		if ( ! $this->uses_wordfence() ) {
+			return Wpvulnerability::index();
+		}
 		$index = get_option( 'dragoncompliance_feed_index', array() );
 		return is_array( $index ) ? $index : array();
 	}
@@ -562,7 +752,7 @@ class Feed {
 	 * Seconds since the last successful fetch, or null if never fetched.
 	 */
 	public function age(): ?int {
-		$meta = get_option( 'dragoncompliance_feed_meta', array() );
+		$meta = $this->uses_wordfence() ? get_option( 'dragoncompliance_feed_meta', array() ) : Wpvulnerability::meta();
 		if ( empty( $meta['fetched_at'] ) ) {
 			return null;
 		}
@@ -570,12 +760,8 @@ class Feed {
 	}
 
 	/**
-	 * Whether the feed has a usable source configured.
-	 *
-	 * True when a Wordfence token is set, or when Pro has pointed the feed at
-	 * the Dragon Core proxy. The admin uses this to decide whether to prompt for
-	 * a token, so a licensed Pro site correctly shows monitoring as active
-	 * without one.
+	 * Whether the Wordfence feed has a usable source configured: a token is
+	 * set, or a filtered source says it is configured.
 	 */
 	public function has_token(): bool {
 		return ! empty( $this->source()['configured'] );

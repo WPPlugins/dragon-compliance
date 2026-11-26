@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin UI: Tools → Compliance.
+ * Admin UI: Tools > Compliance.
  *
  * @package DragonCompliance
  */
@@ -13,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
  * Renders the admin page and handles its actions.
  */
 class Admin {
+
+	/**
+	 * Transient prefix for a refused settings save, completed with the user id.
+	 */
+	private const SETTINGS_ERROR = 'dragoncompliance_settings_error_';
 
 	/**
 	 * Findings store.
@@ -105,7 +110,7 @@ class Admin {
 	}
 
 	/**
-	 * The tab list, filterable so Pro can add tabs.
+	 * The tab list, filterable so an add-on can add tabs.
 	 *
 	 * @return array<string,string> slug => label.
 	 */
@@ -117,10 +122,9 @@ class Admin {
 			'checklist' => __( 'Checklist', 'dragon-compliance' ),
 			'evidence'  => __( 'Evidence', 'dragon-compliance' ),
 			'settings'  => __( 'Settings', 'dragon-compliance' ),
-			'license'   => __( 'License', 'dragon-compliance' ),
 		);
 		/**
-		 * Filters the admin tab list (Pro appends its tabs).
+		 * Filters the admin tab list (an add-on can append tabs).
 		 *
 		 * @param array $tabs slug => label.
 		 */
@@ -155,6 +159,7 @@ class Admin {
 		}
 		echo '</nav>';
 
+		$this->render_pro_notice();
 		$this->render_notices();
 
 		switch ( $active ) {
@@ -173,19 +178,6 @@ class Admin {
 			case 'settings':
 				$this->render_settings();
 				break;
-			case 'license':
-				/**
-				 * Filters whether the Pro plugin is active and licensed-capable.
-				 *
-				 * @param bool $active Whether Pro handles the license tab.
-				 */
-				if ( apply_filters( 'dragoncompliance_pro_active', false ) ) {
-					/** This action is documented in includes/class-admin.php */
-					do_action( 'dragoncompliance_admin_tabs', 'license' );
-				} else {
-					require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/license-upsell.php';
-				}
-				break;
 			case 'dashboard':
 				$this->render_dashboard();
 				break;
@@ -203,12 +195,33 @@ class Admin {
 	}
 
 	/**
+	 * Ask to deactivate the Pro add-on while it is active.
+	 */
+	private function render_pro_notice(): void {
+		if ( ! class_exists( '\DragonCompliancePro\Plugin' ) ) {
+			return;
+		}
+		printf(
+			'<div class="notice notice-warning"><p>%s</p></div>',
+			esc_html__( 'Dragon Compliance now monitors vulnerabilities without an account and can email several alert recipients. While the Dragon Compliance Pro add-on is active, the alert recipients saved here are not used. Deactivate the add-on to use the built-in alerts.', 'dragon-compliance' )
+		);
+	}
+
+	/**
 	 * One-shot admin notices from redirects.
 	 */
 	private function render_notices(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice flag.
 		$notice = isset( $_GET['dragoncompliance_notice'] ) ? sanitize_key( wp_unslash( $_GET['dragoncompliance_notice'] ) ) : '';
 		if ( '' === $notice ) {
+			return;
+		}
+		if ( 'settings_refused' === $notice ) {
+			$message = get_transient( self::SETTINGS_ERROR . get_current_user_id() );
+			delete_transient( self::SETTINGS_ERROR . get_current_user_id() );
+			if ( is_string( $message ) && '' !== $message ) {
+				printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $message ) );
+			}
 			return;
 		}
 		$messages = array(
@@ -219,6 +232,7 @@ class Admin {
 		$errors   = array(
 			'attestations_failed' => __( 'Attestations could not be saved: the database refused the write. Nothing was recorded in the evidence log. Please try again.', 'dragon-compliance' ),
 			'finding_not_updated' => __( 'The finding was not updated. It may already have that status, or the database refused the write.', 'dragon-compliance' ),
+			'settings_failed'     => __( 'Some settings could not be saved: the database refused the write. Please try again.', 'dragon-compliance' ),
 		);
 		if ( isset( $messages[ $notice ] ) ) {
 			printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html( $messages[ $notice ] ) );
@@ -235,18 +249,40 @@ class Admin {
 		return array(
 			'age'       => $age,
 			'stale'     => null !== $age && $age > 2 * DAY_IN_SECONDS,
-			'has_token' => $this->feed->has_token(),
+			'has_token' => $this->feed->monitoring_ready(),
 			// Configured but never successfully fetched: monitoring has no data yet.
 			'no_data'   => null === $age,
 			'error'     => $this->feed->last_error(),
+			'provider'  => $this->feed->provider(),
+			'unchecked' => self::unchecked_labels( $this->feed->unchecked() ),
 		);
+	}
+
+	/**
+	 * Readable names for components a scan could not check.
+	 *
+	 * @param array $unchecked "type|slug" => reason.
+	 * @return string[] One "slug (type)" label each.
+	 */
+	public static function unchecked_labels( array $unchecked ): array {
+		$labels = array();
+		foreach ( array_keys( $unchecked ) as $key ) {
+			$parts    = explode( '|', (string) $key, 2 );
+			$labels[] = sprintf(
+				/* translators: 1: component slug, 2: component type label. */
+				__( '%1$s (%2$s)', 'dragon-compliance' ),
+				$parts[1] ?? $parts[0],
+				Labels::component_type( $parts[0] )
+			);
+		}
+		return $labels;
 	}
 
 	/**
 	 * Dashboard tab.
 	 */
 	private function render_dashboard(): void {
-		$checklist = new Checklist( $this->findings, $this->evidence );
+		$checklist = new Checklist( $this->findings, $this->evidence, array(), $this->feed );
 		$result    = $checklist->evaluate();
 
 		$dragoncompliance_view = array(
@@ -264,18 +300,78 @@ class Admin {
 	 */
 	private function render_inventory(): void {
 		$inventory             = new Inventory();
+		$components            = $inventory->components();
 		$dragoncompliance_view = array(
-			'components'  => $inventory->components(),
+			'components'  => $components,
+			'checks'      => self::check_states( $components, $this->feed ),
 			'environment' => $inventory->environment(),
 			'export_url'  => wp_nonce_url( admin_url( 'admin-post.php?action=dragoncompliance_export_sbom' ), 'dragoncompliance_export_sbom' ),
 			/**
-			 * Filters the available SBOM export formats (Pro adds SPDX).
+			 * Filters the available SBOM export formats (an add-on can add formats).
 			 *
 			 * @param array $formats format-slug => [label, url].
 			 */
 			'formats'     => (array) apply_filters( 'dragoncompliance_sbom_formats', array() ),
 		);
 		require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/inventory.php';
+	}
+
+	/**
+	 * Per-component state of the last vulnerability lookup, keyed by
+	 * "type|slug" of each inventory row: 'checked' (looked up at the version
+	 * now installed), 'not_listed' (checked at that version: its name cannot
+	 * be a WordPress.org slug, so it is not in the database), 'not_checked'
+	 * (the lookup failed), 'pending' (installed or updated since the last
+	 * scan), or '' before any scan. Empty for the Wordfence feed, which covers
+	 * every component at once.
+	 *
+	 * @param array $components Inventory components.
+	 * @param Feed  $feed       Feed.
+	 * @return array<string,string>
+	 */
+	public static function check_states( array $components, Feed $feed ): array {
+		$states = array();
+		if ( $feed->uses_wordfence() ) {
+			return $states;
+		}
+		$scanned    = ! empty( Wpvulnerability::meta()['scanned_at'] );
+		$checked    = Wpvulnerability::checked();
+		$unchecked  = Wpvulnerability::unchecked();
+		$not_listed = Wpvulnerability::not_listed();
+		foreach ( $components as $component ) {
+			$type    = (string) ( $component['type'] ?? '' );
+			$slug    = (string) ( $component['slug'] ?? '' );
+			$version = (string) ( $component['version'] ?? '' );
+
+			// A single-file plugin with a known alias is looked up under the alias.
+			$keys    = array( $type . '|' . $slug );
+			$aliases = 'plugin' === $type ? Inventory::plugin_aliases( $slug ) : array();
+			if ( array() !== $aliases ) {
+				$keys = array();
+				foreach ( $aliases as $alias ) {
+					$keys[] = 'plugin|' . $alias;
+				}
+			}
+
+			if ( ! $scanned ) {
+				$state = '';
+			} elseif ( isset( $not_listed[ $type . '|' . $slug ] ) && array() === $aliases ) {
+				$state = $not_listed[ $type . '|' . $slug ] === $version ? 'not_listed' : 'pending';
+			} else {
+				$state = 'checked';
+				foreach ( $keys as $key ) {
+					if ( isset( $unchecked[ $key ] ) ) {
+						$state = 'not_checked';
+						break;
+					}
+					if ( ( $checked[ $key ] ?? null ) !== $version ) {
+						$state = 'pending';
+					}
+				}
+			}
+			$states[ $type . '|' . $slug ] = $state;
+		}
+		return $states;
 	}
 
 	/**
@@ -293,7 +389,7 @@ class Admin {
 	 * Checklist tab.
 	 */
 	private function render_checklist(): void {
-		$checklist             = new Checklist( $this->findings, $this->evidence );
+		$checklist             = new Checklist( $this->findings, $this->evidence, array(), $this->feed );
 		$dragoncompliance_view = array(
 			'items' => $checklist->items(),
 			'score' => Checklist::score_of( $checklist->items() ),
@@ -328,27 +424,11 @@ class Admin {
 		$dragoncompliance_view = array(
 			'alert_enabled' => (bool) get_option( 'dragoncompliance_alert_enabled', 1 ),
 			'has_token'     => $this->feed->token_set(),
-			'proxied'       => $this->feed->is_proxied(),
-			'pro_alerts'    => self::pro_alert_note( defined( 'DRAGONCOMPLIANCEPRO_VERSION' ) ? (string) constant( 'DRAGONCOMPLIANCEPRO_VERSION' ) : null ),
+			'provider'      => $this->feed->provider(),
+			'recipients'    => implode( "\n", Alerts::saved_recipients() ),
+			'admin_email'   => (string) get_option( 'admin_email', '' ),
 		);
 		require DRAGONCOMPLIANCE_PLUGIN_DIR . 'admin/views/settings.php';
-	}
-
-	/**
-	 * Which note the alert setting needs for the installed Pro add-on.
-	 *
-	 * Pro 1.0.9 routes alerts and falls back to the site admin when this
-	 * setting is on. Earlier Pro releases override the setting to off while
-	 * licensed, so describing the fallback there would be wrong.
-	 *
-	 * @param string|null $pro_version Installed Pro version, null without Pro.
-	 * @return string 'routed', 'update', or '' for no note.
-	 */
-	public static function pro_alert_note( ?string $pro_version ): string {
-		if ( null === $pro_version || '' === $pro_version ) {
-			return '';
-		}
-		return version_compare( $pro_version, '1.0.9', '>=' ) ? 'routed' : 'update';
 	}
 
 	/**
@@ -381,7 +461,11 @@ class Admin {
 	}
 
 	/**
-	 * Save settings (alert toggle + Wordfence token).
+	 * Save settings (source, Wordfence token, alerts, uninstall opt-in).
+	 *
+	 * The recipient list is validated first: a list containing markup, or an
+	 * entry that is not an email address, refuses the whole form so nothing
+	 * is half-saved.
 	 */
 	public function handle_save_settings(): void {
 		check_admin_referer( 'dragoncompliance_save_settings' );
@@ -389,8 +473,39 @@ class Admin {
 			wp_die( esc_html__( 'Permission denied.', 'dragon-compliance' ) );
 		}
 
+		$typed  = isset( $_POST['dragoncompliance_alert_recipients'] ) && is_string( $_POST['dragoncompliance_alert_recipients'] )
+			? filter_var( wp_unslash( $_POST['dragoncompliance_alert_recipients'] ), FILTER_VALIDATE_REGEXP, array( 'options' => array( 'regexp' => '/^[^<>]*$/D' ) ) )
+			: '';
+		$parsed = false === $typed
+			? array(
+				'emails' => array(),
+				'error'  => __( 'The alert recipients contain "<" or ">". Enter plain email addresses only.', 'dragon-compliance' ),
+			)
+			: Alerts::parse_recipients( (string) $typed );
+		if ( '' !== $parsed['error'] ) {
+			set_transient(
+				self::SETTINGS_ERROR . get_current_user_id(),
+				sprintf(
+					/* translators: %s: what is wrong with the alert recipients, a full sentence. */
+					__( 'The settings were not saved. Alert recipients: %s', 'dragon-compliance' ),
+					$parsed['error']
+				),
+				60
+			);
+			wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=settings&dragoncompliance_notice=settings_refused' ) );
+			exit;
+		}
+
+		$provider = isset( $_POST['dragoncompliance_feed_provider'] ) ? sanitize_key( wp_unslash( $_POST['dragoncompliance_feed_provider'] ) ) : '';
+		if ( ! in_array( $provider, array( Feed::PROVIDER_WPVULNERABILITY, Feed::PROVIDER_WORDFENCE ), true ) ) {
+			$provider = $this->feed->provider();
+		}
+		$previous = $this->feed->provider();
+
 		update_option( 'dragoncompliance_alert_enabled', empty( $_POST['dragoncompliance_alert_enabled'] ) ? 0 : 1 );
 		update_option( 'dragoncompliance_delete_data_on_uninstall', empty( $_POST['dragoncompliance_delete_data_on_uninstall'] ) ? 0 : 1 );
+		update_option( Alerts::RECIPIENTS_OPTION, $parsed['emails'], false );
+		update_option( Feed::PROVIDER_OPTION, $provider );
 
 		if ( ! empty( $_POST['dragoncompliance_clear_token'] ) ) {
 			delete_option( 'dragoncompliance_api_token' );
@@ -401,7 +516,24 @@ class Admin {
 			}
 		}
 
-		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=settings&dragoncompliance_notice=settings_saved' ) );
+		// update_option() is also false for an unchanged value, so read back.
+		$source_stored = get_option( Feed::PROVIDER_OPTION ) === $provider;
+		$stored        = $source_stored && Alerts::saved_recipients() === $parsed['emails'];
+
+		if ( $source_stored && $previous !== $provider ) {
+			$this->evidence->record(
+				'feed_source_changed',
+				array(
+					'from' => $previous,
+					'to'   => $provider,
+				)
+			);
+			// The next scan with data closes the old source's findings.
+			Feed::note_source_change( $previous, $provider );
+		}
+
+		$notice = $stored ? 'settings_saved' : 'settings_failed';
+		wp_safe_redirect( admin_url( 'tools.php?page=dragon-compliance&tab=settings&dragoncompliance_notice=' . $notice ) );
 		exit;
 	}
 
@@ -414,7 +546,7 @@ class Admin {
 			wp_die( esc_html__( 'Permission denied.', 'dragon-compliance' ) );
 		}
 
-		$checklist = new Checklist( $this->findings, $this->evidence );
+		$checklist = new Checklist( $this->findings, $this->evidence, array(), $this->feed );
 		$attested  = isset( $_POST['dragoncompliance_attested'] ) ? (array) map_deep( wp_unslash( $_POST['dragoncompliance_attested'] ), 'sanitize_text_field' ) : array();
 		$notes     = isset( $_POST['dragoncompliance_note'] ) ? (array) map_deep( wp_unslash( $_POST['dragoncompliance_note'] ), 'sanitize_text_field' ) : array();
 

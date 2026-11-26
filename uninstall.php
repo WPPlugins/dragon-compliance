@@ -34,6 +34,19 @@ function dragoncompliance_uninstall_site(): void {
 	wp_clear_scheduled_hook( 'dragoncompliance_daily_scan' );
 	wp_clear_scheduled_hook( 'dragoncompliance_change_scan' );
 
+	// Cached vulnerability lookups are disposable copies of public data.
+	global $wpdb;
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query(
+		$wpdb->prepare(
+			'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',
+			$wpdb->options,
+			$wpdb->esc_like( '_transient_dragoncompliance_wpv_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_dragoncompliance_wpv_' ) . '%'
+		)
+	);
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
 	// Respect the site owner's data: nothing else is removed unless they
 	// explicitly opted in (the "Delete all data on uninstall" setting). Without
 	// the opt-in, tables and options survive so a reinstall picks up exactly
@@ -41,8 +54,6 @@ function dragoncompliance_uninstall_site(): void {
 	if ( ! dragoncompliance_uninstall_opted_in( get_option( 'dragoncompliance_delete_data_on_uninstall' ) ) ) {
 		return;
 	}
-
-	global $wpdb;
 
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'dragoncompliance_findings' ) );
@@ -57,6 +68,11 @@ function dragoncompliance_uninstall_site(): void {
 		'dragoncompliance_api_token',
 		'dragoncompliance_feed_index',
 		'dragoncompliance_feed_meta',
+		'dragoncompliance_feed_provider',
+		'dragoncompliance_wpv_index',
+		'dragoncompliance_wpv_meta',
+		'dragoncompliance_source_change',
+		'dragoncompliance_alert_recipients',
 		'dragoncompliance_last_scan',
 		'dragoncompliance_review_prompt',
 		'dragoncompliance_pro_pointer',

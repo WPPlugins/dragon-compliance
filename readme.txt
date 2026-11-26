@@ -4,7 +4,7 @@ Tags: compliance, security, vulnerability scanner, sbom, nis2
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.13
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,19 +12,27 @@ CRA and NIS2 compliance for WordPress: software inventory, SBOM export, vulnerab
 
 == Description ==
 
-The EU Cyber Resilience Act (CRA) and NIS2 directive expect businesses to know
-what software they run, monitor it for known vulnerabilities, patch without
-delay - and to be able to *prove* all of that. Dragon Compliance is the
-WordPress compliance plugin that turns your site into something you can hand
-to an auditor:
+The EU Cyber Resilience Act (CRA) and the NIS2 directive expect the businesses
+they cover to know what software they run, monitor it for known
+vulnerabilities, patch without delay - and to be able to *prove* all of that.
+Dragon Compliance turns your WordPress site into something you can hand to an
+auditor:
+
+https://www.youtube.com/watch?v=BW8A7YLDZnQ
 
 * **Software inventory** - WordPress core, every plugin and theme with version,
   author and license, plus the PHP/database/server environment.
 * **SBOM export** - download a standards-compliant CycloneDX 1.6 JSON Software
   Bill of Materials, the artifact auditors and enterprise customers ask for.
-* **Vulnerability monitoring** - a daily scan matches your inventory against
-  the Wordfence Intelligence vulnerability database and lists affected
-  components by severity. New critical findings can email the site admin.
+* **Vulnerability monitoring that works out of the box** - a daily scan checks
+  WordPress core and every installed plugin and theme against the free
+  WPVulnerability database, with no account or API key, and lists affected
+  components by severity with CVE links. A component that could not be checked
+  is shown as "not checked", never as clear. If you prefer, switch to the
+  Wordfence Intelligence feed with your own free token.
+* **Vulnerability alerts** - new critical findings, and new findings whose
+  severity has not been published yet, are emailed to the site admin or to a
+  list of addresses you choose.
 * **CRA readiness checklist** - automatic checks (HTTPS, auto-updates coverage,
   debug mode, file editing, 2FA, default admin account, open criticals) plus
   manual attestations for process facts like your update policy and backups,
@@ -32,91 +40,136 @@ to an auditor:
 * **Evidence log** - every scan, detection, resolution and attestation change
   is recorded with a timestamp, building the audit trail regulators expect.
 
-Everything is processed **locally on your server**. Your inventory is never
-uploaded anywhere - the only outbound request is downloading the public
-vulnerability database.
+Matching, findings and the evidence log all stay in your WordPress database.
+To check for known vulnerabilities, the plugin asks a public vulnerability
+database about your installed components (see External services below): it
+sends component names and the WordPress version, never your site address,
+users or content.
 
 Everything above is free, fully functional and unlimited.
 
-= Dragon Compliance Pro =
-
-For agencies and businesses that answer to clients or auditors:
-
-* White-label scheduled compliance reports
-* SBOM snapshots with diffs, and SPDX 2.3 export
-* Tamper-evident hash-chained evidence log
-* Time-to-patch metrics
-* Alert routing: multiple recipients, signed webhooks, Slack
-* NIS2 mapping view
-
-See [Dragon Compliance Pro](https://dragoncore.ltd/plugins/dragon-compliance-pro) for details.
-
 == External services ==
 
-This plugin can connect to the Wordfence Intelligence vulnerability database
-(a service by Defiant Inc.) to download its public list of known WordPress
-vulnerabilities. This is required for the vulnerability-monitoring feature
-and happens once daily, and when you press "Scan now".
+This plugin connects to one vulnerability database at a time, chosen under
+Tools → Compliance → Settings. Both are used only for vulnerability
+monitoring: once a day, after you add, update or remove a plugin or theme,
+when you press "Scan now", and once more shortly after a scan that ran out of
+time before every component was looked up.
 
-Only a standard HTTP request with your Wordfence Intelligence API token is
-sent - no data about your site, its inventory or its users is transmitted.
-You need a free wordfence.com account to generate a token; without one, the
-plugin's other features work normally and monitoring stays off.
+= WPVulnerability (default) =
+
+WPVulnerability (https://www.wpvulnerability.com) is a free, public database
+of known WordPress vulnerabilities. By default the plugin asks
+www.wpvulnerability.net about each installed component: the slug (folder
+name) of every plugin and theme, and the WordPress core version number. Plugin
+and theme versions are not sent; the plugin compares versions on your server.
+Your site address, users and content are not sent; like any web request, the
+service sees your server's IP address. Answers are cached on your site for
+12 hours. No account or API key is needed.
+
+WPVulnerability data is published under CC0 1.0.
+
+WPVulnerability privacy policy: https://www.wpvulnerability.com/privacy/
+WPVulnerability licence: https://www.wpvulnerability.com/license/
+
+= Wordfence Intelligence (only when you choose it) =
+
+If you select Wordfence Intelligence and enter your own API token, the plugin
+instead downloads the full Wordfence Intelligence vulnerability list from
+www.wordfence.com (a service by Defiant Inc.) and matches it on your server.
+Only your API token is sent with that request - no data about your site, its
+inventory or its users. Without a token nothing is sent to Wordfence. You need
+a free wordfence.com account to generate a token.
 
 Wordfence terms of service: https://www.wordfence.com/terms-of-use/
 Wordfence privacy policy: https://www.wordfence.com/privacy-policy/
-
-If the separate Dragon Compliance Pro add-on is installed and licensed, the
-same vulnerability list is downloaded from Dragon Core (api.dragoncore.ltd)
-instead, so no Wordfence account is needed. That request carries only your
-Dragon Core licence key and site hostname (for licence validation) - again,
-nothing about your inventory or users. Dragon Core serves an unmodified copy of
-the Wordfence Intelligence feed, including its copyright notices. This
-plugin only ever downloads the feed from www.wordfence.com or
-api.dragoncore.ltd; no other host is accepted.
-
-Dragon Core terms: https://dragoncore.ltd/terms
-Dragon Core privacy policy: https://dragoncore.ltd/privacy
 
 == Installation ==
 
 1. Upload the plugin files to `/wp-content/plugins/dragon-compliance`, or
    install through the WordPress plugins screen.
 2. Activate the plugin through the 'Plugins' screen.
-3. Go to Tools → Compliance.
-4. (Optional, for vulnerability monitoring) Create a free wordfence.com
-   account, generate an API token under Dashboard → Integrations, and paste it
-   under Tools → Compliance → Settings.
+3. Go to Tools → Compliance. Vulnerability monitoring is already on; press
+   "Scan now" for a first result, or wait for the daily scan.
+4. (Optional) Under Settings, add more alert recipients, or switch the data
+   source to Wordfence Intelligence with your own free API token.
 
 == Frequently Asked Questions ==
 
 = Does the CRA apply to my site? =
 
-If your WordPress site is part of a commercial digital product or service
-offered in the EU, parts of the CRA and NIS2 likely apply to your business.
-This plugin gives you the technical evidence base - it is not legal advice.
+Not necessarily. The CRA covers products with digital elements placed on the
+EU market, and NIS2 covers organisations in certain sectors above certain
+sizes; many websites fall under neither. Whether either applies to your
+business is a legal question. This plugin gives you the technical evidence
+base either way - it is not legal advice.
 
 = Where does the vulnerability data come from? =
 
-From the Wordfence Intelligence Community Edition database, matched locally
-against your installed versions. Your inventory never leaves your server.
+By default from WPVulnerability, a free public database, without an account.
+The plugin sends it the slugs of your installed plugins and themes and your
+WordPress version, and compares the answers with your installed versions on
+your server. You can switch to the Wordfence Intelligence Community Edition
+feed with your own free token, in which case the whole feed is downloaded and
+nothing about your site is sent.
+
+= What happens if a lookup fails? =
+
+That component is listed as "not checked" on the Dashboard, Findings and
+Inventory tabs and in the evidence log, and its open findings stay open. It is
+never reported as free of vulnerabilities. The next scan tries again.
+
+A plugin or theme whose folder name cannot be a WordPress.org slug (for
+example one with a space, a plus sign or brackets in it), one WPVulnerability
+does not accept as a slug, and a custom single-file plugin (a lone .php file
+in the plugins folder) are not failures: they are shown as "Checked - not in
+the database". A pre-release of WordPress (a beta or release candidate) is
+checked against the release it leads up to.
+
+= Which findings are emailed? =
+
+New critical findings, and new findings whose severity the data source has not
+published yet. The email lists the critical ones first, then the others, each
+marked "severity not published - review it". Findings of high, medium or low
+severity are shown on the Findings tab but not emailed.
+
+= What does the "No open critical vulnerabilities" check count? =
+
+Only open findings with a published critical severity. A finding whose
+severity has not been published does not make the check fail, so review those
+on the Findings tab. The check also fails while any component could not be
+checked.
+
+= What happens when I switch the data source? =
+
+At the next scan, findings from the old source get the status "Closed: data
+source changed", never "Resolved", and the new source's findings are recorded.
+An issue both sources report (same component and CVE) is not alerted again,
+and stays ignored if you had ignored it. The switch is recorded in the
+evidence log. A site updated from an earlier version that had vulnerability
+data but no saved Wordfence token moves to WPVulnerability, and that switch
+is recorded the same way.
+
+= Who receives alerts? =
+
+The site admin email by default. Under Settings you can enter several
+addresses, one per line or separated by commas; each gets its own email.
 
 = What SBOM formats are supported? =
 
-CycloneDX 1.6 JSON in the free plugin. Dragon Compliance Pro adds SPDX 2.3
-and automatic SBOM snapshots with diffs.
+CycloneDX 1.6 JSON.
 
 = What is an SBOM, and why would I need one? =
 
 A Software Bill of Materials lists every software component you run, with versions and licenses - like an ingredients label for your site. Auditors, enterprise customers and EU regulation increasingly ask for one. This plugin exports yours in the standard CycloneDX format in one click.
 
-= When do the CRA obligations start? =
+= When do the CRA obligations apply? =
 
-The Cyber Resilience Act's vulnerability and incident reporting obligations begin in September 2026, with the remaining requirements following in 2027. If the CRA touches your business, the evidence trail is worth starting now - findings and attestations only prove a history if they have one.
+The Cyber Resilience Act's vulnerability and incident reporting obligations have applied since 11 September 2026, and the remaining requirements apply from 11 December 2027. If the CRA touches your business, the evidence trail is worth keeping from now on - findings and attestations only prove a history if they have one.
 
 = Will it slow down my site? =
 
-No. Scans run in the background once a day via WP-Cron, there is no front-end code at all, and the vulnerability match happens locally against a cached copy of the database.
+No. Scans run in the background once a day via WP-Cron, there is no front-end code at all, and vulnerability answers are cached for 12 hours.
 
 = Is this a malware scanner? =
 
@@ -126,12 +179,15 @@ publicly known vulnerabilities. It does not scan files for infections.
 == Screenshots ==
 
 1. Dashboard - readiness score, open findings and vulnerability monitoring at a glance.
-2. Findings - known vulnerabilities in installed plugins, themes and core, matched against the Wordfence Intelligence feed with CVE links.
+2. Findings - known vulnerabilities in installed plugins, themes and core, with severity and CVE links.
 3. Inventory & SBOM - every component on the site, exportable as a CycloneDX SBOM in one click.
 4. Checklist - automatic CRA readiness checks plus recorded process attestations.
 5. Evidence - a timestamped log of every scan, detection and attestation.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Vulnerability monitoring now works without an account, using WPVulnerability. Sites with a saved Wordfence token keep Wordfence. Alerts can go to several addresses.
 
 = 1.0.13 =
 Stricter handling of checklist input. No change to how scans or exports work.
@@ -165,6 +221,19 @@ Listing and documentation improvements only. Safe to update.
 The WordPress.org listing icon is drawn with glyphs from Lucide (https://lucide.dev), ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (https://feathericons.com, MIT License). All other copyright (c) for Lucide are held by Lucide Contributors 2022. The plugin itself does not include these icons.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: vulnerability monitoring works out of the box. WPVulnerability is the default data source, with no account or API key. Each installed plugin and theme is looked up by its slug, and WordPress core by its version; answers are cached for 12 hours.
+* New: a component whose lookup fails is listed as "not checked" on the Dashboard, Findings and Inventory tabs and in the evidence log. Its open findings stay open, and the "No open critical vulnerabilities" check does not pass until it is checked.
+* New: a plugin or theme whose name cannot be a WordPress.org slug, and a custom single-file plugin, is shown as "Checked - not in the database" instead of "not checked". A WordPress beta or release candidate is checked against the release it leads up to.
+* New: findings whose severity has not been published are emailed too, after the critical ones and marked for review.
+* New: switching the data source closes the old source's findings as "data source changed" instead of fixed. An issue both sources report is not alerted again and keeps its ignored status. A site updated with vulnerability data but no saved Wordfence token moves to WPVulnerability, and that switch is recorded in the evidence log too.
+* Changed: a WordPress core issue listed several times under one CVE is shown once, and a copy without a CVE is dropped when its description matches a CVE entry. Copies worded differently can still appear as separate findings.
+* New: choose the data source under Settings. Sites that already saved a Wordfence Intelligence token keep Wordfence.
+* New: alerts can go to several email addresses (one per line or separated by commas). Leave the field empty to keep emailing the site admin. A list with an invalid address is refused whole, and an alert the mail system refuses is recorded in the evidence log.
+* Changed: requests to WPVulnerability and Wordfence identify the plugin instead of carrying the site address in the user agent.
+* Changed: the Wordfence feed can only be fetched from www.wordfence.com.
+* Removed: the License tab and all add-on prompts.
 
 = 1.0.13 =
 * Checklist notes and attestations are cleaned as they are read. A malformed submission saves an empty note instead of the word "Array".

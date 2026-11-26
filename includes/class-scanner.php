@@ -1,6 +1,6 @@
 <?php
 /**
- * Scan pipeline: feed → match → persist → evidence → alerts → hooks.
+ * Scan pipeline: feed, match, persist, evidence, alerts, hooks.
  *
  * @package DragonCompliance
  */
@@ -111,13 +111,129 @@ class Scanner {
 	}
 
 	/**
+	 * Open findings minus those on a component the scan could not check.
+	 *
+	 * @param array $open_rows Open findings.
+	 * @param array $unchecked "type|slug" => reason.
+	 * @return array
+	 */
+	public static function without_unchecked( array $open_rows, array $unchecked ): array {
+		if ( array() === $unchecked ) {
+			return $open_rows;
+		}
+		return array_values(
+			array_filter(
+				$open_rows,
+				static function ( $row ) use ( $unchecked ): bool {
+					$key = (string) ( $row['component_type'] ?? '' ) . '|' . (string) ( $row['component_slug'] ?? '' );
+					return ! isset( $unchecked[ $key ] );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Evidence payload for components a scan could not check: how many, and
+	 * the first 50 as "type:slug" with the reason.
+	 *
+	 * @param array $unchecked "type|slug" => reason.
+	 * @return array
+	 */
+	public static function unchecked_evidence( array $unchecked ): array {
+		$components = array();
+		foreach ( array_slice( $unchecked, 0, 50, true ) as $key => $reason ) {
+			$components[] = str_replace( '|', ':', (string) $key ) . ' (' . (string) $reason . ')';
+		}
+		return array(
+			'count'      => count( $unchecked ),
+			'components' => $components,
+		);
+	}
+
+	/**
+	 * Close the findings the previous source reported, without calling them
+	 * fixed: the new source names vulnerabilities by its own ids, so they
+	 * would otherwise all look resolved and come back as new.
+	 *
+	 * Findings on a component the new source could not check stay as they
+	 * are, and the change stays pending until a later scan checks it.
+	 *
+	 * @param array $change    Pending change (Feed::pending_source_change()).
+	 * @param array $unchecked "type|slug" => reason.
+	 * @return array<string,string> "type|slug|CVE" => status before closing
+	 *                              ('ignored' only when every row with that key was ignored).
+	 */
+	private function apply_source_change( array $change, array $unchecked ): array {
+		$closable = array();
+		$waiting  = 0;
+		foreach ( $this->findings->detected_before( $change['at'] ) as $row ) {
+			$key = (string) ( $row['component_type'] ?? '' ) . '|' . (string) ( $row['component_slug'] ?? '' );
+			if ( isset( $unchecked[ $key ] ) ) {
+				++$waiting;
+				continue;
+			}
+			$closable[ (int) $row['id'] ] = $row;
+		}
+
+		$closed = array() === $closable ? array() : $this->findings->close_source_changed( array_keys( $closable ) );
+
+		$carry = array();
+		foreach ( $closed as $id ) {
+			$row    = $closable[ $id ];
+			$status = (string) ( $row['status'] ?? 'open' );
+			$this->evidence->record(
+				'finding_source_changed',
+				array(
+					'finding_id' => $id,
+					'vuln_id'    => (string) ( $row['vuln_id'] ?? '' ),
+					'slug'       => (string) ( $row['component_slug'] ?? '' ),
+					'cve'        => (string) ( $row['cve'] ?? '' ),
+					'status'     => $status,
+					'reason'     => 'source_changed',
+					'from'       => $change['from'],
+					'to'         => $change['to'],
+				)
+			);
+
+			$cve = (string) ( $row['cve'] ?? '' );
+			if ( '' === $cve ) {
+				continue;
+			}
+			$key           = (string) ( $row['component_type'] ?? '' ) . '|' . (string) ( $row['component_slug'] ?? '' ) . '|' . $cve;
+			$carry[ $key ] = ( 'ignored' === $status && 'open' !== ( $carry[ $key ] ?? 'ignored' ) ) ? 'ignored' : 'open';
+		}
+
+		if ( 0 === $waiting && count( $closed ) === count( $closable ) ) {
+			Feed::clear_source_change();
+		}
+		return $carry;
+	}
+
+	/**
 	 * Run a full scan.
 	 *
 	 * @return array Summary.
 	 */
 	public function run(): array {
+		// The first source lookup after an upgrade notes the implicit change.
+		$this->feed->provider();
+
 		$components = $this->inventory->components();
 		$slug_map   = Inventory::slug_map( $components );
+
+		// A change made by an upgrade has no settings save to record it.
+		$change = Feed::pending_source_change();
+		if ( null !== $change && ! $change['logged'] ) {
+			$this->evidence->record(
+				'feed_source_changed',
+				array(
+					'from'   => $change['from'],
+					'to'     => $change['to'],
+					'reason' => $change['reason'],
+				)
+			);
+			Feed::source_change_logged();
+		}
 
 		$feed_error = null;
 		$refreshed  = $this->feed->refresh( $slug_map );
@@ -134,17 +250,26 @@ class Scanner {
 			);
 		}
 
-		$index   = $this->feed->index();
-		$matched = Matcher::matches( $index, $slug_map );
+		$unchecked = $this->feed->unchecked();
+		if ( array() !== $unchecked ) {
+			$this->evidence->record( 'vuln_check_incomplete', self::unchecked_evidence( $unchecked ) );
+		}
+
+		$index    = $this->feed->index();
+		$matched  = Matcher::matches( $index, $slug_map );
+		$has_data = $this->feed->has_data();
+
+		$carry = null !== $change && $has_data ? $this->apply_source_change( $change, $unchecked ) : array();
 
 		// A scan may only resolve findings when it actually has vulnerability
-		// data to compare against. With an empty index (never fetched, no token,
+		// data to compare against. Without any (never fetched, no token,
 		// option wiped), an empty match set would otherwise mark every open
-		// finding resolved — a false all-clear plus bogus resolution evidence,
-		// the worst outcome for a compliance tool. A non-empty but stale index
-		// (e.g. after a fetch error) is still real data, so it processes fully.
-		$open_rows = array() !== $index ? $this->findings->open() : array();
-		$diff      = array() !== $index
+		// finding resolved: a false all-clear plus bogus resolution evidence,
+		// the worst outcome for a compliance tool. A stale index (e.g. after a
+		// fetch error) is still real data, so it processes fully. Findings on a
+		// component this scan could not check are left exactly as they are.
+		$open_rows = $has_data ? self::without_unchecked( $this->findings->open(), $unchecked ) : array();
+		$diff      = $has_data
 			? Matcher::diff( $open_rows, $matched )
 			: array(
 				'new'          => array(),
@@ -154,6 +279,7 @@ class Scanner {
 		$this->record_version_changes( $open_rows, $matched );
 
 		$new_findings = array();
+		$carried      = 0;
 		foreach ( $diff['new'] as $record ) {
 			// Only open rows are diffed, so a vulnerability seen before arrives
 			// here too: upsert() reopens a resolved row and leaves an ignored
@@ -161,20 +287,36 @@ class Scanner {
 			$upsert = $this->findings->upsert( $record );
 			$id     = (int) $upsert['id'];
 			if ( $id > 0 ) {
+				// The same issue the previous source reported (same component
+				// and CVE), or a row of a source back in use: already known, so
+				// it keeps an ignored status and sends no alert.
+				$carry_key = (string) ( $record['type'] ?? '' ) . '|' . (string) ( $record['slug'] ?? '' ) . '|' . (string) ( $record['cve'] ?? '' );
+				$known     = 'restored' === $upsert['action'] || ( '' !== (string) ( $record['cve'] ?? '' ) && isset( $carry[ $carry_key ] ) );
+				$status    = 'open';
+				if ( 'ignored' === ( $carry[ $carry_key ] ?? '' ) && $this->findings->set_ignored( $id, true ) ) {
+					$status = 'ignored';
+				}
+
 				$reopened             = 'reopened' === $upsert['action'];
 				$record['finding_id'] = $id;
 				$record['reopened']   = $reopened;
-				$new_findings[]       = $record;
-				$this->evidence->record(
-					$reopened ? 'vuln_reopened' : 'vuln_detected',
-					array(
-						'finding_id' => $id,
-						'vuln_id'    => (string) ( $record['vuln_id'] ?? '' ),
-						'slug'       => (string) ( $record['slug'] ?? '' ),
-						'severity'   => (string) ( $record['severity'] ?? '' ),
-						'cve'        => (string) ( $record['cve'] ?? '' ),
-					)
+				$payload              = array(
+					'finding_id' => $id,
+					'vuln_id'    => (string) ( $record['vuln_id'] ?? '' ),
+					'slug'       => (string) ( $record['slug'] ?? '' ),
+					'severity'   => (string) ( $record['severity'] ?? '' ),
+					'cve'        => (string) ( $record['cve'] ?? '' ),
 				);
+				if ( $known ) {
+					$payload['source_changed'] = true;
+					$payload['status']         = $status;
+					$this->evidence->record( 'vuln_detected', $payload );
+					++$carried;
+					continue;
+				}
+
+				$new_findings[] = $record;
+				$this->evidence->record( $reopened ? 'vuln_reopened' : 'vuln_detected', $payload );
 				/**
 				 * Fires when a new vulnerability is detected, or a resolved one
 				 * comes back (the record's 'reopened' key is then true).
@@ -203,26 +345,31 @@ class Scanner {
 			}
 		}
 
-		$criticals = array_values(
-			array_filter(
-				$new_findings,
-				static function ( array $finding ): bool {
-					return 'critical' === ( $finding['severity'] ?? '' );
-				}
-			)
-		);
-		if ( array() !== $criticals ) {
-			$this->alerts->critical( $criticals );
+		// Critical findings, and findings whose severity was not published.
+		$alertable = array_values( array_filter( $new_findings, array( Alerts::class, 'alertable' ) ) );
+		if ( array() !== $alertable ) {
+			$failed = $this->alerts->alert( $alertable );
+			if ( array() !== $failed ) {
+				$this->evidence->record(
+					'alert_not_delivered',
+					array(
+						'recipients' => $failed,
+						'findings'   => count( $alertable ),
+					)
+				);
+			}
 		}
 
 		$summary = array(
-			'new'        => count( $new_findings ),
-			'resolved'   => count( $resolved_ids ),
-			'open'       => count( $matched ),
-			'unassessed' => Matcher::unassessed( $components ),
-			'feed_age'   => $this->feed->age(),
-			'feed_error' => $feed_error,
-			'components' => count( $components ),
+			'new'          => count( $new_findings ),
+			'carried_over' => $carried,
+			'resolved'     => count( $resolved_ids ),
+			'open'         => count( $matched ),
+			'unassessed'   => Matcher::unassessed( $components ),
+			'not_checked'  => array_keys( $unchecked ),
+			'feed_age'     => $this->feed->age(),
+			'feed_error'   => $feed_error,
+			'components'   => count( $components ),
 		);
 
 		update_option( 'dragoncompliance_last_scan', time(), false );

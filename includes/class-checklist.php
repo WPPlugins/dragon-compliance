@@ -42,16 +42,25 @@ class Checklist {
 	private array $overrides;
 
 	/**
+	 * Vulnerability data front, for the components the last scan could not check.
+	 *
+	 * @var Feed|null
+	 */
+	private ?Feed $feed;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Findings_Store $findings  Findings store.
 	 * @param Evidence       $evidence  Evidence log.
 	 * @param array          $overrides Auto-check overrides (tests).
+	 * @param Feed|null      $feed      Vulnerability data front.
 	 */
-	public function __construct( Findings_Store $findings, Evidence $evidence, array $overrides = array() ) {
+	public function __construct( Findings_Store $findings, Evidence $evidence, array $overrides = array(), ?Feed $feed = null ) {
 		$this->findings  = $findings;
 		$this->evidence  = $evidence;
 		$this->overrides = $overrides;
+		$this->feed      = $feed;
 	}
 
 	/**
@@ -95,7 +104,7 @@ class Checklist {
 		}
 
 		/**
-		 * Filters the evaluated checklist items (Pro adds its own).
+		 * Filters the evaluated checklist items (an add-on can add its own).
 		 *
 		 * @param array $items Checklist items.
 		 */
@@ -273,6 +282,7 @@ class Checklist {
 	 */
 	private function auto_definitions(): array {
 		$findings = $this->findings;
+		$feed     = $this->feed;
 		return array(
 			'https'               => array(
 				'label'       => __( 'Site served over HTTPS', 'dragon-compliance' ),
@@ -352,10 +362,11 @@ class Checklist {
 				'description' => __( 'Known-exploitable components must be patched or removed.', 'dragon-compliance' ),
 				'category'    => 'update-management',
 				'pass_detail' => __( 'No open critical findings.', 'dragon-compliance' ),
-				'fail_detail' => __( 'Critical findings are open - review the Findings tab.', 'dragon-compliance' ),
-				'check'       => static function () use ( $findings ): bool {
+				'fail_detail' => __( 'Critical findings are open, or the last scan could not check every component - review the Findings tab.', 'dragon-compliance' ),
+				'check'       => static function () use ( $findings, $feed ): bool {
 					$by_severity = $findings->open_by_severity();
-					return empty( $by_severity['critical'] );
+					// A component that was not checked cannot count as clear.
+					return empty( $by_severity['critical'] ) && ( null === $feed || array() === $feed->unchecked() );
 				},
 			),
 		);
